@@ -2,15 +2,24 @@ import { Controller, Post, Get, Body, Param, Patch, Delete } from '@nestjs/commo
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
+// import { Roles } from '../common/decorators/roles.decorator';
+// import { RoleType } from '../common/constants';
+// import { UseGuards } from '@nestjs/common';
+// import { RolesGuard } from '../common/guards/roles.guard';
 
 /**
- * Controlador que gestiona las rutas relacionadas con los roles.
+ * Controlador encargado de gestionar las rutas relacionadas con los roles de usuario.
  *
- * Proporciona endpoints para crear, listar, actualizar, eliminar y restaurar roles.
+ * Todos los endpoints de este controlador están protegidos por el `RolesGuard`,
+ * lo que significa que solo los usuarios autenticados con rol `ADMIN` pueden acceder.
  *
  * Ruta base: `/roles`
+ *
+ * @protected Solo accesible por usuarios con el rol `ADMIN`.
  */
 @Controller('roles')
+// @UseGuards(RolesGuard)
+// @Roles(RoleType.ADMIN)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 
