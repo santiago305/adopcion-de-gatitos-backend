@@ -17,6 +17,11 @@ export class RolesController {
     return this.rolesService.findAll();
   }
 
+  @Get('actives')
+  findActives() {
+    return this.rolesService.findActives();
+  }
+
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.rolesService.findOne(+id);
@@ -30,5 +35,10 @@ export class RolesController {
   @Delete(':id')
   remove(@Param('id') id: string) {
     return this.rolesService.remove(+id);
+  }
+
+  @Patch(':id/restore')
+  restore(@Param('id') id: string) {
+    return this.rolesService.restore(+id);
   }
 }

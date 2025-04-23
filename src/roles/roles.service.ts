@@ -17,6 +17,10 @@ export class RolesService {
   }
 
   async findAll() {
+    return this.roleRepository.find();
+  }
+
+  async findActives() {
     return this.roleRepository.find({
       where: { deleted: false },
       relations: ['users'],
@@ -37,6 +41,13 @@ export class RolesService {
 
   async remove(id: number) {
     const role = await this.findOne(id);
-    return this.roleRepository.remove(role);
+    role.deleted = true;
+    return this.roleRepository.save(role);
+  }
+
+  async restore(id: number) {
+    const role = await this.findOne(id);
+    role.deleted = false;
+    return this.roleRepository.save(role);
   }
 }
