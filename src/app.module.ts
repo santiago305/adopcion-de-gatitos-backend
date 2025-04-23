@@ -12,9 +12,13 @@ import { AnimalsModule } from './animals/animals.module';
 import { AdoptionsModule } from './adoptions/adoptions.module';
 import { AppConfigModule } from './config/config.module';
 import { CommonModule } from './common/common.module';
+import { DatabaseModule } from './database/database.module';
 
 @Module({
   imports: [
+    AppConfigModule,
+    CommonModule,
+    DatabaseModule,
     UsersModule, 
     AuthModule, 
     RolesModule, 
@@ -26,8 +30,6 @@ import { CommonModule } from './common/common.module';
     CharacteristicsModule, 
     AnimalsModule, 
     AdoptionsModule,
-    AppConfigModule,
-    CommonModule
       ],
 })
 export class AppModule {}
