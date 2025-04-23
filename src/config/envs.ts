@@ -8,6 +8,10 @@ interface EnvVars {
     DB_USERNAME: string;
     DB_PASSWORD: string;
     DB_NAME: string;
+    COOKIE_SECRET: string;
+    // JWT_SECRET: string;
+    // JWT_EXPIRES_IN: string;
+    // JWT_ISSUER: string;
     }
 
 const envsSchema = joi.object({
@@ -17,6 +21,10 @@ const envsSchema = joi.object({
     DB_USERNAME: joi.string().required(),
     DB_PASSWORD: joi.string().required(),
     DB_NAME: joi.string().required(),
+    COOKIE_SECRET: joi.string().required(),
+    // JWT_SECRET: joi.string().required(),
+    // JWT_EXPIRES_IN: joi.string().required(),
+    // JWT_ISSUER: joi.string().required(),
 })
 .unknown(true)
 
@@ -32,11 +40,12 @@ const envsVars:EnvVars = value
 
 export const envs = {
     port: envsVars.PORT,
+    cookieSecret: envsVars.COOKIE_SECRET,
     db: {
         host: envsVars.DB_HOST,
         port: envsVars.DB_PORT,
         username: envsVars.DB_USERNAME,
         password: envsVars.DB_PASSWORD,
         name: envsVars.DB_NAME,
-    }
+    },
 }
