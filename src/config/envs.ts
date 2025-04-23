@@ -1,14 +1,22 @@
-
-
 import 'dotenv/config'
 import * as joi from 'joi';
 
 interface EnvVars {
     PORT: number;
-}
+    DB_HOST: string;
+    DB_PORT: number;
+    DB_USERNAME: string;
+    DB_PASSWORD: string;
+    DB_NAME: string;
+    }
 
 const envsSchema = joi.object({
     PORT: joi.number().required(),
+    DB_HOST: joi.string().required(),
+    DB_PORT: joi.number().required(),
+    DB_USERNAME: joi.string().required(),
+    DB_PASSWORD: joi.string().required(),
+    DB_NAME: joi.string().required(),
 })
 .unknown(true)
 
@@ -24,4 +32,11 @@ const envsVars:EnvVars = value
 
 export const envs = {
     port: envsVars.PORT,
+    db: {
+        host: envsVars.DB_HOST,
+        port: envsVars.DB_PORT,
+        username: envsVars.DB_USERNAME,
+        password: envsVars.DB_PASSWORD,
+        name: envsVars.DB_NAME,
+    }
 }

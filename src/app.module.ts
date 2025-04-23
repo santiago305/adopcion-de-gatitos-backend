@@ -10,6 +10,8 @@ import { PersonalityModule } from './personality/personality.module';
 import { CharacteristicsModule } from './characteristics/characteristics.module';
 import { AnimalsModule } from './animals/animals.module';
 import { AdoptionsModule } from './adoptions/adoptions.module';
+import { AppConfigModule } from './config/config.module';
+import { CommonModule } from './common/common.module';
 
 @Module({
   imports: [
@@ -23,7 +25,9 @@ import { AdoptionsModule } from './adoptions/adoptions.module';
     PersonalityModule, 
     CharacteristicsModule, 
     AnimalsModule, 
-    AdoptionsModule
-  ],
+    AdoptionsModule,
+    AppConfigModule,
+    CommonModule
+      ],
 })
 export class AppModule {}
