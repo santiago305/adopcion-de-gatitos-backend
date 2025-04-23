@@ -32,6 +32,8 @@ export class RolesService {
    * Obtiene todos los roles registrados.
    * 
    * @returns Lista completa de roles.
+   * @throws Error si no se encuentran roles.
+   * pnpm run seed guarda datos predeterminados
    */
   async findAll() {
     return this.roleRepository.find();
