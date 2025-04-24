@@ -33,6 +33,6 @@ export class Role {
    * Relación uno-a-muchos con la entidad `User`.
    * Un rol puede estar asignado a múltiples usuarios.
    */
-  @OneToMany(() => User, (user) => user.role)
-  users: User[];
+  // @OneToMany(() => User, (user) => user.role)
+  // users: User[];
 }
