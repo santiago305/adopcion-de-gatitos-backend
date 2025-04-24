@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, RequestMethod } from '@nestjs/common';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
@@ -13,6 +13,7 @@ import { AdoptionsModule } from './adoptions/adoptions.module';
 import { AppConfigModule } from './config/config.module';
 import { CommonModule } from './common/common.module';
 import { DatabaseModule } from './database/database.module';
+import { TokenMiddleware } from './common/middleware/token.middleware';
 
 @Module({
   imports: [
@@ -32,4 +33,10 @@ import { DatabaseModule } from './database/database.module';
     AdoptionsModule,
       ],
 })
-export class AppModule {}
+export class AppModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(TokenMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

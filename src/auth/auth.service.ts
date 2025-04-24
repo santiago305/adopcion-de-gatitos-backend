@@ -1,26 +1,45 @@
-import { Injectable } from '@nestjs/common';
-import { CreateAuthDto } from './dto/create-auth.dto';
-import { UpdateAuthDto } from './dto/update-auth.dto';
+// auth/auth.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { JwtService } from '@nestjs/jwt';
+import * as argon2 from 'argon2';
+import { UsersService } from '../users/users.service';
+import { LoginAuthDto } from './dto';
+import { mapUser } from 'src/users/utils/user.mapper';
+
 
 @Injectable()
 export class AuthService {
-  create(createAuthDto: CreateAuthDto) {
-    return 'This action adds a new auth';
+  constructor(
+    private readonly usersService: UsersService,
+    private readonly jwtService: JwtService,
+  ) {}
+
+  async validateUser(email: string, password: string) {
+    const user = await this.usersService.findByEmail(email);
+    if (!user || user.deleted) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+    const isPasswordValid = await argon2.verify(user.password, password);
+    if (!isPasswordValid) {
+      throw new UnauthorizedException('Credenciales inválidas');
+    }
+    return user;
   }
 
-  findAll() {
-    return `This action returns all auth`;
-  }
+  async login(dto: LoginAuthDto) {
+    const user = await this.validateUser(dto.email, dto.password);
 
-  findOne(id: number) {
-    return `This action returns a #${id} auth`;
-  }
+    const payload = {
+      sub: user.id,
+      email: user.email,
+      role: user.role,
+    };
 
-  update(id: number, updateAuthDto: UpdateAuthDto) {
-    return `This action updates a #${id} auth`;
-  }
+    const token = this.jwtService.sign(payload);
 
-  remove(id: number) {
-    return `This action removes a #${id} auth`;
+    return {
+      access_token: token,
+      user: mapUser(user),
+    };
   }
 }

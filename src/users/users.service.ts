@@ -6,6 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
+import { mapUser } from './utils/user.mapper';
 
 /**
  * UsersService proporciona operaciones CRUD para los usuarios del sistema.
@@ -19,19 +20,6 @@ export class UsersService {
   ) {}
 
   /**
-   * Mapea un objeto `User` a una versión segura para exponer.
-   * @param user Entidad de usuario
-   * @returns Usuario mapeado sin contraseña y con rol simplificado
-   */
-  private mapUser = (user: User) => ({
-    id: user.id,
-    name: user.name,
-    email: user.email,
-    deleted: user.deleted,
-    role: user.role?.description,
-  });
-
-  /**
    * Retorna todos los usuarios activos (no eliminados).
    * @returns Lista de usuarios
    */
@@ -40,7 +28,7 @@ export class UsersService {
       where: { deleted: false },
       relations: ['role'],
     });
-    return users.map(this.mapUser);
+    return users.map(mapUser);
   }
 
   /**
@@ -52,7 +40,7 @@ export class UsersService {
       where: { deleted: false },
       relations: ['role'],
     });
-    return users.map(this.mapUser);
+    return users.map(mapUser);
   }
 
   /**
@@ -67,7 +55,7 @@ export class UsersService {
       relations: ['role'],
     });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    return this.mapUser(user);
+    return mapUser(user);
   }
 
   /**
@@ -82,7 +70,8 @@ export class UsersService {
       relations: ['role'],
     });
     if (!user) throw new NotFoundException('Usuario no encontrado por email');
-    return this.mapUser(user);
+    // return this.mapUser(user);
+    return user;
   }
 
   /**
@@ -108,7 +97,7 @@ export class UsersService {
     });
 
     const saved = await this.userRepository.save(user);
-    return this.mapUser(saved);
+    return mapUser(saved);
   }
 
   /**
@@ -145,7 +134,7 @@ export class UsersService {
     if (dto.roleId) user.role = { id: dto.roleId } as Role;
 
     await this.userRepository.save(user);
-    return this.mapUser(user);
+    return mapUser(user);
   }
 
   /**
@@ -175,6 +164,6 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
     user.deleted = false;
     const saved = await this.userRepository.save(user);
-    return this.mapUser(saved);
+    return mapUser(saved);
   }
 }
