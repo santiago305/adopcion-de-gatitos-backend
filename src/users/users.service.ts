@@ -6,7 +6,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
-import { mapUser } from './utils/user.mapper';
+import { mapUser, mapUserList } from './utils/user.mapper';
 
 /**
  * UsersService proporciona operaciones CRUD para los usuarios del sistema.
@@ -28,7 +28,7 @@ export class UsersService {
       where: { deleted: false },
       relations: ['role'],
     });
-    return users.map(mapUser);
+    return users.map(mapUserList);
   }
 
   /**
@@ -40,7 +40,7 @@ export class UsersService {
       where: { deleted: false },
       relations: ['role'],
     });
-    return users.map(mapUser);
+    return users.map(mapUserList);
   }
 
   /**
@@ -55,7 +55,7 @@ export class UsersService {
       relations: ['role'],
     });
     if (!user) throw new NotFoundException('Usuario no encontrado');
-    return mapUser(user);
+    return mapUserList(user);
   }
 
   /**
@@ -134,7 +134,7 @@ export class UsersService {
     if (dto.roleId) user.role = { id: dto.roleId } as Role;
 
     await this.userRepository.save(user);
-    return mapUser(user);
+    return mapUserList(user);
   }
 
   /**
@@ -147,7 +147,8 @@ export class UsersService {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
     user.deleted = true;
-    return this.userRepository.save(user);
+    const saved = await this.userRepository.save(user);
+    return mapUserList(saved);
   }
 
   /**
@@ -164,6 +165,6 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
     user.deleted = false;
     const saved = await this.userRepository.save(user);
-    return mapUser(saved);
+    return mapUserList(saved);
   }
 }

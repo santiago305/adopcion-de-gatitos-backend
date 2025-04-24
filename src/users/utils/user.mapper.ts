@@ -6,6 +6,14 @@ import { User } from '../entities/user.entity';
    */
 export function mapUser(user: User) {
   return {
+    name: user.name,
+    email: user.email,
+    role: user.role?.description,
+  };
+}
+
+export function mapUserList(user: User) {
+  return {
     id: user.id,
     name: user.name,
     email: user.email,
