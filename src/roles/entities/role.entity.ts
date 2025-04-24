@@ -1,5 +1,5 @@
+import { User } from 'src/users/entities/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
-import { User } from '../../users/entities/user.entity'; // Ajustar si cambia la estructura de carpetas
 
 /**
  * Entidad `Role` que representa los diferentes roles de usuario en el sistema.

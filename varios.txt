@@ -5,3 +5,15 @@ getPrivado() {
   return 'solo admin y user';
 }
 // esta es la forma de utilizar lo que son los middlewares y los guards 
+
+const res = await fetch('http://localhost:3000/auth/login', {
+  method: 'POST',
+  credentials: 'include',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    email: 'juan@example.com',
+    password: '123456',
+  }),
+});

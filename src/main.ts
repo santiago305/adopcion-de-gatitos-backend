@@ -9,6 +9,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   // usamos el filtro de manera globasl
   app.useGlobalFilters(new HttpErrorFilter());
+  enableCookieParser(app);
   // habilitamos el cors
   app.enableCors({
     origin: '*',
@@ -18,7 +19,6 @@ async function bootstrap() {
   // Usar el interceptor global para logs
   app.useGlobalInterceptors(new LoggingInterceptor());
   // Habilitar el uso de cookies
-  enableCookieParser(app);
 
   await app.listen(envs.port || 3000);
   console.log(`Server is running on port ${envs.port || 3000}`);

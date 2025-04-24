@@ -45,6 +45,12 @@ export class AuthController {
       sameSite: 'lax',     // Previene CSRF en la mayoría de los casos
       maxAge: 7 * 24 * 60 * 60 * 1000, // 7 días
     });
+    res.cookie('access_token', access_token, {
+      httpOnly: true, // solo el backend puede acceder
+      secure: false, // true solo si usás HTTPS
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60, // 1h
+    });
 
     return { access_token, user };
   }
@@ -59,6 +65,7 @@ export class AuthController {
   @Post('logout')
   logout(@Res({ passthrough: true }) res: Response) {
     res.clearCookie('refresh_token');
+    res.clearCookie('access_token');
     return { message: 'Sesión cerrada correctamente' };
   }
 

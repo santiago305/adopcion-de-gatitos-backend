@@ -1,6 +1,7 @@
 import { DataSource } from 'typeorm';
 import { envs } from './src/config/envs';
 import { Role } from './src/roles/entities/role.entity';
+import { User } from 'src/users/entities/user.entity';
 import { seedRoles } from './src/roles/seed/role.seeder';
 import { seedUser } from 'src/users/seed/user.seeder';
 
@@ -31,7 +32,7 @@ const dataSource = new DataSource({
   database: envs.db.name,
   synchronize: false, // ya sincronizó antes
   logging: false,
-  entities: [Role], // puedes agregar más entidades si quieres hacer seed de varias tablas
+  entities: [Role, User], // puedes agregar más entidades si quieres hacer seed de varias tablas
 });
 
 dataSource

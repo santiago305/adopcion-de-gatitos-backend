@@ -1,17 +1,15 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
 
 /**
- * Decorador personalizado que extrae el usuario autenticado desde la request (`req.user`).
+ * Decorador para extraer el usuario autenticado desde el request (inyectado por el JwtStrategy).
  *
- * Requiere que un `AuthGuard` (como JWT o sesión) haya poblado `request.user`.
- *
- * @throws InternalServerErrorException si no se encuentra el usuario en la request.
+ * @returns El objeto `user` que fue incluido en el `validate()` del JWT strategy.
  *
  * @example
  * ```ts
- * @Get('me')
- * getProfile(@User() user: any) {
- *   console.log(user); // Accede directamente al usuario autenticado
+ * @Get('profile')
+ * getProfile(@User() user) {
+ *   return user;
  * }
  * ```
  */
@@ -19,12 +17,7 @@ export const User = createParamDecorator(
   (data: unknown, ctx: ExecutionContext) => {
     const request = ctx.switchToHttp().getRequest();
 
-    // if (!request.user) {
-    //   throw new InternalServerErrorException(
-    //     'User not found in request (AuthGuard called?)'
-    //   );
-    // }
-
-    return request.user || null;
+    // Este `user` fue insertado por JwtStrategy.validate()
+    return request.user || null; // Devuelve null si no está logueado (opcional)
   },
 );
