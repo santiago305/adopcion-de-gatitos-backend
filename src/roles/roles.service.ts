@@ -47,7 +47,7 @@ export class RolesService {
   async findActives() {
     return this.roleRepository.find({
       where: { deleted: false },
-      // relations: ['users'],
+      relations: ['users'],
     });
   }
 
@@ -59,7 +59,7 @@ export class RolesService {
    * @returns El rol encontrado.
    */
   async findOne(id: number) {
-    const role = await this.roleRepository.findOneBy({ id });
+    const role = await this.roleRepository.findOneBy({ id, deleted: false });
     if (!role) throw new Error(`El rol ${id} no ha sido encontrado`);
     return role;
   }
@@ -96,7 +96,9 @@ export class RolesService {
    * @returns El rol restaurado (estado `deleted` en false).
    */
   async restore(id: number) {
-    const role = await this.findOne(id);
+    const role = await this.roleRepository.findOne(
+      { where: { id, deleted: true } },
+    );
     role.deleted = false;
     return this.roleRepository.save(role);
   }

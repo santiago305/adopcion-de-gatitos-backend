@@ -1,6 +1,9 @@
 import { PartialType } from '@nestjs/mapped-types';
 import { CreateUserDto } from './create-user.dto';
 
-export class UpdateUserDto extends PartialType(CreateUserDto) {
-    
-}
+/**
+ * DTO para la actualización de usuarios.
+ * Hereda todos los campos de CreateUserDto pero los hace opcionales.
+ * Ideal para operaciones de tipo PATCH.
+ */
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
