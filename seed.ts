@@ -2,6 +2,7 @@ import { DataSource } from 'typeorm';
 import { envs } from './src/config/envs';
 import { Role } from './src/roles/entities/role.entity';
 import { seedRoles } from './src/roles/seed/role.seeder';
+import { seedUser } from 'src/users/seed/user.seeder';
 
 /**
  * Script de ejecución que inicializa la base de datos con roles predefinidos.
@@ -38,6 +39,7 @@ dataSource
   .then(async () => {
     console.log('Iniciando seed...');
     await seedRoles(dataSource); // ejecuta la siembra de roles
+    await seedUser(dataSource); // ejecuta la siembra de usuario
     await dataSource.destroy(); // cierra la conexión con la DB
     console.log('Seeding completo!');
   })

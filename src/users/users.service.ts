@@ -7,6 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
 import { mapUser, mapUserList } from './utils/user.mapper';
+import { RoleType } from 'src/common/constants';
 
 /**
  * UsersService proporciona operaciones CRUD para los usuarios del sistema.
@@ -17,6 +18,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
+    @InjectRepository(Role)
+    private readonly roleRepository: Repository<Role>,
   ) {}
 
   /**
@@ -80,7 +83,7 @@ export class UsersService {
    * @throws BadRequestException si el email ya está en uso
    * @returns Usuario creado
    */
-  async create(dto: CreateUserDto) {
+  async create(dto: CreateUserDto, requesterRole: string) {
     const existing = await this.userRepository.findOneBy({ email: dto.email });
     if (existing) {
       throw new BadRequestException('El email ya está en uso');
@@ -91,11 +94,17 @@ export class UsersService {
     });
 
     const DEFAULT_ROLE_ID = 3;
+    const roleId = requesterRole === RoleType.ADMIN ? (dto.roleId ?? DEFAULT_ROLE_ID) : DEFAULT_ROLE_ID;
+
+    const roleExists = await this.roleRepository.findOneBy({ id: roleId });
+    if (!roleExists) {
+      throw new BadRequestException(`Rol con ID ${roleId} no existe`);
+    }
 
     const user = this.userRepository.create({
       ...dto,
       password: hashedPassword,
-      role: { id: dto.roleId ?? DEFAULT_ROLE_ID },
+      role: { id: roleId },
     });
 
     const saved = await this.userRepository.save(user);

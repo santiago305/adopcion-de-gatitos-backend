@@ -15,6 +15,7 @@ import { Roles } from 'src/common/decorators';
 import { RoleType } from 'src/common/constants';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
+import { User as CurrentUser } from 'src/common/decorators/user.decorator';
 
 /**
  * Controlador para la gestión de usuarios.
@@ -30,8 +31,11 @@ export class UsersController {
    * @returns Usuario creado
    */
   @Post()
-  create(@Body() dto: CreateUserDto) {
-    return this.usersService.create(dto);
+  create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() currentUser?: any 
+  ) {
+    return this.usersService.create(dto, currentUser?.role);
   }
 
   /**
