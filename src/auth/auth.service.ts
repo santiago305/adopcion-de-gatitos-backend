@@ -1,4 +1,3 @@
-// auth/auth.service.ts
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
@@ -53,28 +52,18 @@ export class AuthService {
     };
   }
 
-  async refresh(token: string) {
-    try {
-      const payload = this.jwtService.verify(token,{
-        secret: envs.jwt.secret,
-        issuer: envs.jwt.issuer,
-      });
+  async refreshFromPayload(user: any) {
+    const payload = {
+      sub: user.userId,
+      email: user.email,
+      role: user.role,
+    };
 
-      const newAccessToken = this.jwtService.sign(
-        {
-          sub: payload.sub,
-          email: payload.email,
-          role: payload.role,
-        },
-        {
-          expiresIn: envs.jwt.expiresIn,
-          issuer: envs.jwt.issuer,
-        },
-      );
-      return { access_token: newAccessToken };
+    const newAccessToken = this.jwtService.sign(payload, {
+      expiresIn: envs.jwt.expiresIn,
+      issuer: envs.jwt.issuer,
+    });
 
-    } catch (err) {
-      throw new UnauthorizedException('Token de actualización inválido o expirado');
-    }
+    return { access_token: newAccessToken };
   }
 }

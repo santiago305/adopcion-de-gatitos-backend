@@ -3,13 +3,14 @@ import {
   Post,
   Body,
   Res,
-  Req,
   Get,
-  UnauthorizedException,
+  UseGuards,
 } from '@nestjs/common';
+import { JwtRefreshAuthGuard } from './guard/jwt-refresh-auth.guard';
+import { User as UserDecorator } from '../common/decorators';
 import { AuthService } from './auth.service';
 import { LoginAuthDto } from './dto/login-auth.dto';
-import { Response, Request } from 'express';
+import { Response } from 'express';
 
 @Controller('auth')
 export class AuthController {
@@ -39,14 +40,9 @@ export class AuthController {
     return { message: 'Sesión cerrada correctamente' };
   }
 
+  @UseGuards(JwtRefreshAuthGuard)
   @Get('refresh')
-  async refresh(@Req() req: Request) {
-    const token = req.cookies['refresh_token'];
-
-    if (!token) {
-      throw new UnauthorizedException('No se encontró token de actualización');
-    }
-
-    return this.authService.refresh(token);
+  refresh(@UserDecorator() user: any) {
+    return this.authService.refreshFromPayload(user);
   }
 }
