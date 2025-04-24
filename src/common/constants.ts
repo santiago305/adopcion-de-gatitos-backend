@@ -7,6 +7,7 @@ export enum RoleType {
 }
 
 export enum EconomicStatusType {
+  NINGUNO = 'Ninguno',
   BAJO = 'Bajo',
   MEDIOBAJO = 'Medio Bajo',
   MEDIO = 'Medio',

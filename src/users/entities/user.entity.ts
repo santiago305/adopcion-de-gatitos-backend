@@ -4,8 +4,10 @@ import {
   Column,
   ManyToOne,
   JoinColumn,
+  OneToOne,
 } from 'typeorm';
 import { Role } from '../../roles/entities/role.entity';
+import { Client } from 'src/clients/entities/client.entity';
 
 /**
  * Entidad que representa a un usuario del sistema.
@@ -49,4 +51,7 @@ export class User {
   @ManyToOne(() => Role, (role) => role.users)
   @JoinColumn({ name: 'role_id' })
   role: Role;
+
+  @OneToOne(() => Client, (client) => client.user)
+  client: Client;
 }
