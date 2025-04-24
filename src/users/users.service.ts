@@ -7,6 +7,10 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
 
+/**
+ * UsersService proporciona operaciones CRUD para los usuarios del sistema.
+ * Incluye creación, actualización, recuperación, eliminación lógica y restauración.
+ */
 @Injectable()
 export class UsersService {
   constructor(
@@ -14,15 +18,23 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  /**
+   * Mapea un objeto `User` a una versión segura para exponer.
+   * @param user Entidad de usuario
+   * @returns Usuario mapeado sin contraseña y con rol simplificado
+   */
   private mapUser = (user: User) => ({
     id: user.id,
     name: user.name,
     email: user.email,
-    password: user.password,
     deleted: user.deleted,
     role: user.role?.description,
   });
 
+  /**
+   * Retorna todos los usuarios activos (no eliminados).
+   * @returns Lista de usuarios
+   */
   async findAll() {
     const users = await this.userRepository.find({
       where: { deleted: false },
@@ -31,6 +43,10 @@ export class UsersService {
     return users.map(this.mapUser);
   }
 
+  /**
+   * Alias de `findAll` para obtener usuarios activos.
+   * @returns Lista de usuarios activos
+   */
   async findActives() {
     const users = await this.userRepository.find({
       where: { deleted: false },
@@ -39,6 +55,12 @@ export class UsersService {
     return users.map(this.mapUser);
   }
 
+  /**
+   * Busca un usuario por su ID.
+   * @param id ID del usuario
+   * @throws NotFoundException si no se encuentra
+   * @returns Usuario encontrado
+   */
   async findOne(id: number) {
     const user = await this.userRepository.findOne({
       where: { id, deleted: false },
@@ -48,6 +70,12 @@ export class UsersService {
     return this.mapUser(user);
   }
 
+  /**
+   * Busca un usuario por su correo electrónico.
+   * @param email Email del usuario
+   * @throws NotFoundException si no se encuentra
+   * @returns Usuario encontrado
+   */
   async findByEmail(email: string) {
     const user = await this.userRepository.findOne({
       where: { email, deleted: false },
@@ -57,43 +85,56 @@ export class UsersService {
     return this.mapUser(user);
   }
 
+  /**
+   * Crea un nuevo usuario con contraseña encriptada usando argon2id.
+   * @param dto Datos de creación del usuario
+   * @throws BadRequestException si el email ya está en uso
+   * @returns Usuario creado
+   */
   async create(dto: CreateUserDto) {
     const existing = await this.userRepository.findOneBy({ email: dto.email });
     if (existing) {
       throw new BadRequestException('El email ya está en uso');
     }
-  
+
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
-    }); // 🔐
-  
+    });
+
     const user = this.userRepository.create({
       ...dto,
-      password: hashedPassword, 
+      password: hashedPassword,
       role: { id: dto.roleId },
     });
-  
+
     const saved = await this.userRepository.save(user);
     return this.mapUser(saved);
   }
-  
 
+  /**
+   * Actualiza los datos de un usuario.
+   * Si se cambia la contraseña, la nueva se encripta con argon2id.
+   * @param id ID del usuario a actualizar
+   * @param dto Datos de actualización
+   * @throws NotFoundException si el usuario no existe
+   * @throws BadRequestException si el nuevo email ya está en uso
+   * @returns Usuario actualizado
+   */
   async update(id: number, dto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
       where: { id },
       relations: ['role'],
     });
-  
+
     if (!user) throw new NotFoundException('Usuario no encontrado');
-  
+
     if (dto.email && dto.email !== user.email) {
       const existing = await this.userRepository.findOne({ where: { email: dto.email } });
       if (existing && existing.id !== id) {
         throw new BadRequestException('El correo electrónico ya está en uso por otro usuario');
       }
     }
-  
-    // Actualizar campos uno por uno
+
     if (dto.name) user.name = dto.name;
     if (dto.email) user.email = dto.email;
     if (dto.password) {
@@ -102,12 +143,17 @@ export class UsersService {
       });
     }
     if (dto.roleId) user.role = { id: dto.roleId } as Role;
-  
+
     await this.userRepository.save(user);
     return this.mapUser(user);
   }
-  
 
+  /**
+   * Elimina lógicamente un usuario (soft delete).
+   * @param id ID del usuario
+   * @throws NotFoundException si el usuario no existe
+   * @returns Usuario marcado como eliminado
+   */
   async remove(id: number) {
     const user = await this.userRepository.findOne({ where: { id } });
     if (!user) throw new NotFoundException('Usuario no encontrado');
@@ -115,6 +161,12 @@ export class UsersService {
     return this.userRepository.save(user);
   }
 
+  /**
+   * Restaura un usuario previamente eliminado.
+   * @param id ID del usuario
+   * @throws NotFoundException si el usuario no existe
+   * @returns Usuario restaurado
+   */
   async restore(id: number) {
     const user = await this.userRepository.findOne({
       where: { id },
@@ -123,6 +175,6 @@ export class UsersService {
     if (!user) throw new NotFoundException('Usuario no encontrado');
     user.deleted = false;
     const saved = await this.userRepository.save(user);
-    return this.mapUser(saved)
+    return this.mapUser(saved);
   }
 }
