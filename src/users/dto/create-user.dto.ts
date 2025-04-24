@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsOptional, IsString } from 'class-validator';
 
 /**
  * DTO para la creación de un nuevo usuario.
@@ -30,8 +30,9 @@ export class CreateUserDto {
 
   /**
    * ID del rol asignado al usuario.
-   * Es obligatorio.
+   * No es obligatorio.
    */
+  @IsOptional()
   @IsNotEmpty()
-  roleId: number;
+  roleId?: number;
 }

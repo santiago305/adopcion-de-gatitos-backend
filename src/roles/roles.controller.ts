@@ -2,10 +2,11 @@ import { Controller, Post, Get, Body, Param, Patch, Delete } from '@nestjs/commo
 import { RolesService } from './roles.service';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
-// import { Roles } from '../common/decorators/roles.decorator';
-// import { RoleType } from '../common/constants';
-// import { UseGuards } from '@nestjs/common';
-// import { RolesGuard } from '../common/guards/roles.guard';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RoleType } from '../common/constants';
+import { UseGuards } from '@nestjs/common';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 
 /**
  * Controlador encargado de gestionar las rutas relacionadas con los roles de usuario.
@@ -18,8 +19,8 @@ import { UpdateRoleDto } from './dto/update-role.dto';
  * @protected Solo accesible por usuarios con el rol `ADMIN`.
  */
 @Controller('roles')
-// @UseGuards(RolesGuard)
-// @Roles(RoleType.ADMIN)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleType.ADMIN)
 export class RolesController {
   constructor(private readonly rolesService: RolesService) {}
 

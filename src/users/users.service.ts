@@ -90,10 +90,12 @@ export class UsersService {
       type: argon2.argon2id,
     });
 
+    const DEFAULT_ROLE_ID = 3;
+
     const user = this.userRepository.create({
       ...dto,
       password: hashedPassword,
-      role: { id: dto.roleId },
+      role: { id: dto.roleId ?? DEFAULT_ROLE_ID },
     });
 
     const saved = await this.userRepository.save(user);

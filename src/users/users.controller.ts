@@ -6,10 +6,15 @@ import {
   Param,
   Patch,
   Delete,
+  UseGuards,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { Roles } from 'src/common/decorators';
+import { RoleType } from 'src/common/constants';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
 /**
  * Controlador para la gestión de usuarios.
@@ -34,6 +39,8 @@ export class UsersController {
    * @returns Lista de usuarios
    */
   @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   findAll() {
     return this.usersService.findAll();
   }
@@ -43,6 +50,8 @@ export class UsersController {
    * @returns Lista de usuarios activos
    */
   @Get('actives')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   findActives() {
     return this.usersService.findActives();
   }
@@ -53,6 +62,7 @@ export class UsersController {
    * @returns Usuario encontrado
    */
   @Get(':id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(+id);
   }
@@ -74,6 +84,7 @@ export class UsersController {
    * @returns Usuario actualizado
    */
   @Patch(':id')
+  @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(+id, dto);
   }
@@ -84,6 +95,7 @@ export class UsersController {
    * @returns Usuario marcado como eliminado
    */
   @Delete(':id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.usersService.remove(+id);
   }
@@ -94,6 +106,8 @@ export class UsersController {
    * @returns Usuario restaurado
    */
   @Patch(':id/restore')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   restore(@Param('id') id: string) {
     return this.usersService.restore(+id);
   }
