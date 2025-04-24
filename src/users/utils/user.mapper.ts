@@ -1,9 +1,14 @@
 import { User } from '../entities/user.entity';
-    /**
-   * Mapea un objeto `User` a una versión segura para exponer.
-   * @param user Entidad de usuario
-   * @returns Usuario mapeado sin contraseña y con rol simplificado
-   */
+
+/**
+ * Mapea un objeto `User` para retornar únicamente datos públicos básicos.
+ *
+ * Esta función es útil para respuestas de autenticación o información de perfil
+ * donde no se necesita mostrar el `id`, estado de eliminación ni contraseña.
+ *
+ * @param user - Entidad de tipo `User`.
+ * @returns Un objeto con nombre, email y descripción del rol.
+ */
 export function mapUser(user: User) {
   return {
     name: user.name,
@@ -12,6 +17,15 @@ export function mapUser(user: User) {
   };
 }
 
+/**
+ * Mapea un objeto `User` para mostrar una vista más completa del usuario,
+ * útil para listados administrativos o reportes.
+ *
+ * Incluye el `id`, nombre, email, estado (`deleted`) y descripción del rol.
+ *
+ * @param user - Entidad de tipo `User`.
+ * @returns Un objeto detallado del usuario.
+ */
 export function mapUserList(user: User) {
   return {
     id: user.id,

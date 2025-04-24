@@ -6,7 +6,11 @@ import { LoginAuthDto } from './dto';
 import { mapUser } from 'src/users/utils/user.mapper';
 import { envs } from 'src/config/envs';
 
-
+/**
+ * Servicio responsable de la lógica de autenticación.
+ *
+ * Incluye validación de credenciales, generación de tokens JWT y renovación de tokens.
+ */
 @Injectable()
 export class AuthService {
   constructor(
@@ -14,18 +18,34 @@ export class AuthService {
     private readonly jwtService: JwtService,
   ) {}
 
+  /**
+   * Valida un usuario a partir de su email y contraseña.
+   *
+   * @param email - Correo electrónico del usuario.
+   * @param password - Contraseña en texto plano.
+   * @returns El usuario validado si las credenciales son correctas.
+   * @throws UnauthorizedException si las credenciales son inválidas o el usuario está eliminado.
+   */
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
     if (!user || user.deleted) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
+
     const isPasswordValid = await argon2.verify(user.password, password);
     if (!isPasswordValid) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
+
     return user;
   }
 
+  /**
+   * Inicia sesión con email y contraseña. Retorna tokens JWT y datos del usuario.
+   *
+   * @param dto - DTO con email y contraseña.
+   * @returns Un objeto con access_token, refresh_token y usuario mapeado.
+   */
   async login(dto: LoginAuthDto) {
     const user = await this.validateUser(dto.email, dto.password);
 
@@ -52,6 +72,12 @@ export class AuthService {
     };
   }
 
+  /**
+   * Renueva el token de acceso a partir del payload de un refresh token.
+   *
+   * @param user - Objeto con `userId`, `email` y `role` extraído del refresh token.
+   * @returns Un nuevo access token.
+   */
   async refreshFromPayload(user: any) {
     const payload = {
       sub: user.userId,
