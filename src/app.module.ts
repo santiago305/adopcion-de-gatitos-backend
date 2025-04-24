@@ -14,6 +14,7 @@ import { AppConfigModule } from './config/config.module';
 import { CommonModule } from './common/common.module';
 import { DatabaseModule } from './database/database.module';
 import { TokenMiddleware } from './common/middleware/token.middleware';
+import { EconomicStatusModule } from './economic_status/economic_status.module';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { TokenMiddleware } from './common/middleware/token.middleware';
     PersonalityModule, 
     CharacteristicsModule, 
     AnimalsModule, 
-    AdoptionsModule,
+    AdoptionsModule, EconomicStatusModule,
       ],
 })
 export class AppModule {

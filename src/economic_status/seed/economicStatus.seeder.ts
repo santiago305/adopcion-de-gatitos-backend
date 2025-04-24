@@ -1,6 +1,6 @@
-import { Role } from '../entities/role.entity';
 import { DataSource } from 'typeorm';
-import { RoleType } from '../../common/constants';
+import { EconomicStatusType } from '../../common/constants';
+import { EconomicStatus } from '../entities/economic_status.entity';
 
 /**
  * Script de seed que inserta roles predefinidos en la base de datos.
@@ -22,19 +22,19 @@ import { RoleType } from '../../common/constants';
  * ```
  */
 export const seedRoles = async (dataSource: DataSource) => {
-  const repo = dataSource.getRepository(Role);
+  const repo = dataSource.getRepository(EconomicStatus);
 
-  const rolesToInsert = Object.values(RoleType).map((roleName) =>
-    repo.create({ description: roleName })
+  const economicStatusToInsert = Object.values(EconomicStatusType).map((economicStatusLevel) =>
+    repo.create({ level: economicStatusLevel })
   );
 
-  for (const role of rolesToInsert) {
-    const exists = await repo.findOneBy({ description: role.description});
+  for (const economicStatus of economicStatusToInsert) {
+    const exists = await repo.findOneBy({ level: economicStatus.level });
     if (!exists) {
-      await repo.save(role);
-      console.log(`Rol insertado: ${role.description}`);
+      await repo.save(economicStatus);
+      console.log(`Rol insertado: ${economicStatus.level}`);
     } else {
-      console.log(`Rol ya existe: ${role.description}`);
+      console.log(`Rol ya existe: ${economicStatus.level}`);
     }
   }
 };
