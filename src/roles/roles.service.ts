@@ -47,7 +47,7 @@ export class RolesService {
   async findActives() {
     return this.roleRepository.find({
       where: { deleted: false },
-      relations: ['users'],
+      // relations: ['users'],
     });
   }
 
