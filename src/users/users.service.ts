@@ -5,6 +5,7 @@ import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
+import * as argon2 from 'argon2';
 
 @Injectable()
 export class UsersService {
@@ -58,18 +59,24 @@ export class UsersService {
 
   async create(dto: CreateUserDto) {
     const existing = await this.userRepository.findOneBy({ email: dto.email });
-
     if (existing) {
-      throw new Error('El email ya está en uso');
+      throw new BadRequestException('El email ya está en uso');
     }
-    
+  
+    const hashedPassword = await argon2.hash(dto.password, {
+      type: argon2.argon2id,
+    }); // 🔐
+  
     const user = this.userRepository.create({
       ...dto,
+      password: hashedPassword, 
       role: { id: dto.roleId },
     });
+  
     const saved = await this.userRepository.save(user);
     return this.mapUser(saved);
   }
+  
 
   async update(id: number, dto: UpdateUserDto) {
     const user = await this.userRepository.findOne({
@@ -89,7 +96,11 @@ export class UsersService {
     // Actualizar campos uno por uno
     if (dto.name) user.name = dto.name;
     if (dto.email) user.email = dto.email;
-    if (dto.password) user.password = dto.password;
+    if (dto.password) {
+      user.password = await argon2.hash(dto.password, {
+        type: argon2.argon2id,
+      });
+    }
     if (dto.roleId) user.role = { id: dto.roleId } as Role;
   
     await this.userRepository.save(user);
