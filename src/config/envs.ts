@@ -12,6 +12,7 @@ interface EnvVars {
     JWT_SECRET: string;
     JWT_EXPIRES_IN: string;
     JWT_ISSUER: string;
+    JWT_REFRESH_EXPIRES_IN: string;
     }
 
 const envsSchema = joi.object({
@@ -25,6 +26,7 @@ const envsSchema = joi.object({
     JWT_SECRET: joi.string().required(),
     JWT_EXPIRES_IN: joi.string().required(),
     JWT_ISSUER: joi.string().required(),
+    JWT_REFRESH_EXPIRES_IN: joi.string().required(),
 })
 .unknown(true)
 
@@ -45,6 +47,7 @@ export const envs = {
         secret: envsVars.JWT_SECRET,
         expiresIn: envsVars.JWT_EXPIRES_IN,
         issuer: envsVars.JWT_ISSUER,
+        refreshExpiresIn: envsVars.JWT_REFRESH_EXPIRES_IN,
     },
     db: {
         host: envsVars.DB_HOST,

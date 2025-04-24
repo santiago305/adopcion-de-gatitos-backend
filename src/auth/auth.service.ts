@@ -5,6 +5,7 @@ import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
 import { LoginAuthDto } from './dto';
 import { mapUser } from 'src/users/utils/user.mapper';
+import { envs } from 'src/config/envs';
 
 
 @Injectable()
@@ -32,14 +33,48 @@ export class AuthService {
     const payload = {
       sub: user.id,
       email: user.email,
-      role: user.role,
+      role: user.role?.description,
     };
 
-    const token = this.jwtService.sign(payload);
+    const access_token = this.jwtService.sign(payload, {
+      expiresIn: envs.jwt.expiresIn,
+      issuer: envs.jwt.issuer,
+    });
+
+    const refresh_token = this.jwtService.sign(payload, {
+      expiresIn: envs.jwt.refreshExpiresIn,
+      issuer: envs.jwt.issuer,
+    });
 
     return {
-      access_token: token,
+      access_token,
+      refresh_token,
       user: mapUser(user),
     };
+  }
+
+  async refresh(token: string) {
+    try {
+      const payload = this.jwtService.verify(token,{
+        secret: envs.jwt.secret,
+        issuer: envs.jwt.issuer,
+      });
+
+      const newAccessToken = this.jwtService.sign(
+        {
+          sub: payload.sub,
+          email: payload.email,
+          role: payload.role,
+        },
+        {
+          expiresIn: envs.jwt.expiresIn,
+          issuer: envs.jwt.issuer,
+        },
+      );
+      return { access_token: newAccessToken };
+
+    } catch (err) {
+      throw new UnauthorizedException('Token de actualización inválido o expirado');
+    }
   }
 }
