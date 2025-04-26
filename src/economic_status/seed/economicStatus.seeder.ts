@@ -17,7 +17,7 @@ import { EconomicStatus } from '../entities/economic_status.entity';
  * // Llamada a la función para sembrar los roles de estado económico
  * await seedRoles(dataSource);
  */
-export const seedRoles = async (dataSource: DataSource) => {
+export const seedEconomicStatus = async (dataSource: DataSource) => {
   // Obtiene el repositorio de la entidad EconomicStatus
   const repo = dataSource.getRepository(EconomicStatus);
 

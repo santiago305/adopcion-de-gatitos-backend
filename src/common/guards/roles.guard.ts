@@ -41,10 +41,10 @@ export class RolesGuard implements CanActivate {
    * @throws {ForbiddenException} Si el usuario no tiene un rol permitido.
    */
   canActivate(context: ExecutionContext): boolean {
-    const allowedRoles = this.reflector.get<string[]>(
-      'roles',
+    const allowedRoles = this.reflector.getAllAndOverride<string[]>('roles', [
       context.getHandler(),
-    );
+      context.getClass(),
+    ]);
 
     // Si no hay roles definidos, se permite el acceso por defecto
     if (!allowedRoles) return true;

@@ -4,6 +4,9 @@ import { Role } from './src/roles/entities/role.entity';
 import { User } from 'src/users/entities/user.entity';
 import { seedRoles } from './src/roles/seed/role.seeder';
 import { seedUser } from 'src/users/seed/user.seeder';
+import { seedEconomicStatus } from 'src/economic_status/seed/economicStatus.seeder';
+import { Client } from 'src/clients/entities/client.entity';
+import { EconomicStatus } from 'src/economic_status/entities/economic_status.entity';
 
 /**
  * Script de ejecución que inicializa la base de datos con roles predefinidos.
@@ -32,7 +35,7 @@ const dataSource = new DataSource({
   database: envs.db.name,
   synchronize: false, // ya sincronizó antes
   logging: false,
-  entities: [Role, User], // puedes agregar más entidades si quieres hacer seed de varias tablas
+  entities: [Role, User, Client, EconomicStatus], // puedes agregar más entidades si quieres hacer seed de varias tablas
 });
 
 dataSource
@@ -41,6 +44,7 @@ dataSource
     console.log('Iniciando seed...');
     await seedRoles(dataSource); // ejecuta la siembra de roles
     await seedUser(dataSource); // ejecuta la siembra de usuario
+    await seedEconomicStatus(dataSource); // ejecuta la siembra de estados económicos
     await dataSource.destroy(); // cierra la conexión con la DB
     console.log('Seeding completo!');
   })

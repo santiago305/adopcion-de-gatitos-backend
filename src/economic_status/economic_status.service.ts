@@ -62,7 +62,6 @@ export class EconomicStatusService {
   async findActives() {
     return this.economicStatusRepository.find({
       where: { deleted: false },
-      relations: ['clients'],
     });
   }
 

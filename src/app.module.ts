@@ -31,7 +31,8 @@ import { EconomicStatusModule } from './economic_status/economic_status.module';
     PersonalityModule, 
     CharacteristicsModule, 
     AnimalsModule, 
-    AdoptionsModule, EconomicStatusModule,
+    AdoptionsModule, 
+    EconomicStatusModule,
       ],
 })
 export class AppModule {

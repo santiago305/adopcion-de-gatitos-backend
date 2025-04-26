@@ -17,18 +17,18 @@ export class Client {
   @Column()
   phone: string;
 
-  @Column({ default: false })
-  deleted: boolean;
-
   // Relación con User
   @OneToOne(() => User, { eager: true })
   @JoinColumn({ name: 'user_id' })
   user: User;
-
+  
   // Relación con EconomicStatus
   @ManyToOne(() => EconomicStatus, (economicStatus) => economicStatus.clients, {
     eager: false,
   })
   @JoinColumn({ name: 'economic_status_id' })
   economicStatus: EconomicStatus;
+  
+  @Column({ default: false })
+  deleted: boolean;
 }
