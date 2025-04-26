@@ -11,7 +11,7 @@ import { EconomicStatus } from 'src/economic_status/entities/economic_status.ent
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { RoleType } from 'src/common/constants';
-import { mapClient, mapClientList } from './utils/clients.mapper';
+import { mapClient, mapClientList, mapClientListRaw } from './utils/clients.mapper';
 import { ForbiddenException } from '@nestjs/common';
 
 /**
@@ -75,15 +75,53 @@ export class ClientsService {
   }
 
   /**
-   * Obtiene todos los clientes.
+   * Obtiene todos los clientes del sistema.
    * 
-   * @returns {Promise<Client[]>} Una lista de todos los clientes.
+   * Este método es crucial para obtener la lista completa de clientes registrados en el sistema. 
+   * Solo se consideran aquellos que no están marcados como eliminados (deleted: false). Además, se 
+   * recuperan los datos básicos del cliente, incluyendo la relación con el usuario y el estado económico. 
+   * 
+   * La información retornada es procesada y mapeada a un formato adecuado para ser visualizada de forma eficiente 
+   * en interfaces administrativas o para APIs de terceros.
+   * 
+   * **Optimización de Consultas**: Este método utiliza `createQueryBuilder` para realizar una consulta optimizada 
+   * que solo selecciona los campos necesarios (id, dirección, teléfono, estado económico, etc.), lo que mejora el rendimiento 
+   * al evitar la carga de datos innecesarios.
+   * 
+   * @returns {Promise<Client[]>} Lista de todos los clientes activos en el sistema.
+   * 
+   * @example
+   * [{
+   *   id: 1,
+   *   name: 'Juan Pérez',
+   *   email: 'juan.perez@example.com',
+   *   address: '123 Calle Ficticia, Lima',
+   *   phone: '+51 912 345 678',
+   *   economicStatus: 'Bajo',
+   *   role: 'USER',
+   *   deleted: false
+   * }]
    */
   async findAll() {
-    const clients = await this.clientRepository.find({
-      relations: ['user', 'economicStatus'],
-    });
-    return clients.map(mapClientList)
+    const clients = await this.clientRepository
+      .createQueryBuilder('client')
+      .leftJoin('client.user', 'user')
+      .leftJoin('user.role', 'role')
+      .leftJoin('client.economicStatus', 'economicStatus')
+      .select([
+        'client.id',
+        'client.address',
+        'client.phone',
+        'client.deleted',
+        'user.name',
+        'user.email',
+        'role.description',
+        'economicStatus.level',
+      ])
+      .where('client.deleted = :deleted', { deleted: false })
+      .getRawMany();
+  
+    return clients.map(mapClientListRaw);
   }
 
   /**
@@ -94,7 +132,7 @@ export class ClientsService {
   async findActives() {
     const clients = await this.clientRepository.find({
       where: { deleted: false },
-      relations: ['user', 'economicStatus'],
+      relations: ['user', 'user.role', 'economicStatus'],
     });
     return clients.map(mapClientList)
   }
@@ -109,7 +147,7 @@ export class ClientsService {
   async findOne(id: number) {
     const client = await this.clientRepository.findOne({
       where: { id, deleted: false },
-      relations: ['user', 'economicStatus'],
+      relations: ['user', 'user.role', 'economicStatus'],
     });
 
     if (!client) throw new NotFoundException('Cliente no encontrado');
