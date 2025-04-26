@@ -1,4 +1,4 @@
-import {
+import { 
   BadRequestException,
   Injectable,
   NotFoundException,
@@ -14,6 +14,9 @@ import { RoleType } from 'src/common/constants';
 import { mapClient, mapClientList } from './utils/clients.mapper';
 import { ForbiddenException } from '@nestjs/common';
 
+/**
+ * Servicio para gestionar la lógica de negocio relacionada con los clientes.
+ */
 @Injectable()
 export class ClientsService {
   constructor(
@@ -27,6 +30,16 @@ export class ClientsService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  /**
+   * Crea un nuevo cliente.
+   * 
+   * @param {CreateClientDto} dto - Los datos necesarios para crear un cliente.
+   * @param {Object} user - Información del usuario que realiza la operación.
+   * @param {number} user.userId - ID del usuario que realiza la operación.
+   * @param {string} user.role - Rol del usuario (debe ser 'USER' para crear clientes).
+   * @returns {Promise<Client>} El cliente recién creado.
+   * @throws {BadRequestException} Si ya existe un cliente asociado al usuario o si el rol del usuario no es válido.
+   */
   async create(dto: CreateClientDto, user: { userId: number; role: string }) {
     const existing = await this.clientRepository.findOne({
       where: { user: { id: user.userId } },
@@ -36,7 +49,6 @@ export class ClientsService {
       throw new BadRequestException('El cliente ya existe');
     }
   
-    // Solo usuarios con rol 'user' pueden crear
     if (user.role !== RoleType.USER) {
       throw new BadRequestException('Solo los usuarios pueden crear clientes');
     }
@@ -61,7 +73,12 @@ export class ClientsService {
     const saved = await this.clientRepository.save(client);
     return mapClient(saved);
   }
-    
+
+  /**
+   * Obtiene todos los clientes.
+   * 
+   * @returns {Promise<Client[]>} Una lista de todos los clientes.
+   */
   async findAll() {
     const clients = await this.clientRepository.find({
       relations: ['user', 'economicStatus'],
@@ -69,6 +86,11 @@ export class ClientsService {
     return clients.map(mapClientList)
   }
 
+  /**
+   * Obtiene todos los clientes activos (no eliminados).
+   * 
+   * @returns {Promise<Client[]>} Una lista de clientes activos.
+   */
   async findActives() {
     const clients = await this.clientRepository.find({
       where: { deleted: false },
@@ -77,6 +99,13 @@ export class ClientsService {
     return clients.map(mapClientList)
   }
 
+  /**
+   * Obtiene un cliente por su ID.
+   * 
+   * @param {number} id - El ID del cliente a buscar.
+   * @returns {Promise<Client>} El cliente correspondiente al ID.
+   * @throws {NotFoundException} Si no se encuentra el cliente.
+   */
   async findOne(id: number) {
     const client = await this.clientRepository.findOne({
       where: { id, deleted: false },
@@ -87,6 +116,13 @@ export class ClientsService {
     return mapClientList(client);
   }
 
+  /**
+   * Obtiene el cliente asociado a un usuario.
+   * 
+   * @param {number} userId - El ID del usuario para obtener su cliente.
+   * @returns {Promise<Client>} El cliente asociado al usuario.
+   * @throws {NotFoundException} Si no se encuentra el cliente del usuario.
+   */
   async findByUser(userId: number) {
     const client = await this.clientRepository.findOne({
       where: { user: { id: userId }, deleted: false },
@@ -97,8 +133,19 @@ export class ClientsService {
     return mapClient(client);
   }
 
-
-
+  /**
+   * Actualiza un cliente existente.
+   * 
+   * @param {number} id - El ID del cliente a actualizar.
+   * @param {UpdateClientDto} dto - Los nuevos datos del cliente.
+   * @param {Object} user - Información del usuario que realiza la operación.
+   * @param {number} user.userId - ID del usuario que realiza la operación.
+   * @param {string} user.role - Rol del usuario (solo admin/moderador puede cambiar estado económico).
+   * @returns {Promise<Client>} El cliente actualizado.
+   * @throws {NotFoundException} Si el cliente no existe o está eliminado.
+   * @throws {ForbiddenException} Si el usuario no tiene permiso para actualizar el cliente.
+   * @throws {BadRequestException} Si el estado económico seleccionado no es válido.
+   */
   async update(id: number, dto: UpdateClientDto, user: { userId: number; role: string }) {
     const client = await this.clientRepository.findOne({
       where: { id, deleted: false },
@@ -139,8 +186,12 @@ export class ClientsService {
     return mapClient(saved);
   }
 
-  
-
+  /**
+   * Elimina un cliente.
+   * 
+   * @param {number} id - El ID del cliente a eliminar.
+   * @returns {Promise<Client>} El cliente eliminado.
+   */
   async remove(id: number) {
     const client = await this.clientRepository.findOne({
       where: { id, deleted: false },
@@ -151,6 +202,12 @@ export class ClientsService {
     return mapClient(saved);
   }
 
+  /**
+   * Elimina el cliente asociado a un usuario.
+   * 
+   * @param {number} userId - El ID del usuario cuyo cliente será eliminado.
+   * @returns {Promise<Client>} El cliente eliminado.
+   */
   async removeSelf(userId: number) {
     const client = await this.clientRepository.findOne({
       where: { user: { id: userId }, deleted: false },
@@ -161,6 +218,12 @@ export class ClientsService {
     return mapClient(saved);
   }
 
+  /**
+   * Restaura un cliente eliminado.
+   * 
+   * @param {number} id - El ID del cliente a restaurar.
+   * @returns {Promise<Client>} El cliente restaurado.
+   */
   async restore(id: number) {
     const client = await this.clientRepository.findOne({
       where: { id, deleted: true },
