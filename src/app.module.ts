@@ -1,7 +1,11 @@
-import { MiddlewareConsumer, Module } from '@nestjs/common';
+import { MiddlewareConsumer, 
+  Module, 
+  RequestMethod 
+} from '@nestjs/common';
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
+import { TokenMiddleware } from './common/middleware/token.middleware';
 
 
 @Module({
