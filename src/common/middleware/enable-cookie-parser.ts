@@ -1,6 +1,6 @@
 import { INestApplication } from '@nestjs/common';
 import  cookieParser from 'cookie-parser';
-import { envs } from 'src/config/envs';
+import { envs } from '../../config/envs';
 
 /**
  * Habilita el middleware `cookie-parser` en la aplicación NestJS.
