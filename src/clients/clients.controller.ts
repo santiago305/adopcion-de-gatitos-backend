@@ -68,7 +68,7 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(+id);
+    return this.clientsService.findOne(id);
   }
 
   /**
@@ -79,11 +79,11 @@ export class ClientsController {
    * @param {string} id - El ID del cliente a eliminar.
    * @returns {Promise<Client>} El cliente eliminado.
    */
-  @Delete(':id')
+  @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  remove(@Param('id') id: string) {
-    return this.clientsService.remove(+id);
+  remove(@Param('id') id: string, @User() userId: any) {
+    return this.clientsService.remove(id, userId);
   }
 
   /**
@@ -97,8 +97,8 @@ export class ClientsController {
   @Delete(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  restore(@Param('id') id: string) {
-    return this.clientsService.restore(+id);
+  restore(@Param('id') id: string, ) {
+    return this.clientsService.restore(id, userId);
   }
 
   // Rutas de usuarios
@@ -131,7 +131,7 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.USER)
   findMyClient(@User() user: any) {
-    return this.clientsService.findByUser(user.userId);
+    return this.clientsService.findOwnClient(user.userId);
   }
 
   /**
@@ -142,7 +142,7 @@ export class ClientsController {
    * @param {any} user - Información del usuario autenticado.
    * @returns {Promise<Client>} El cliente eliminado.
    */
-  @Delete('me')
+  @Patch('me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.USER)
   removeSelf(@User() user: any) {

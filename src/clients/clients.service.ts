@@ -1,18 +1,14 @@
 import { 
   BadRequestException,
   Injectable,
-  NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Client } from './entities/client.entity';
 import { User } from 'src/users/entities/user.entity';
-import { EconomicStatus } from 'src/economic_status/entities/economic_status.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
-import { RoleType } from 'src/common/constants';
-import { mapClient, mapClientList, mapClientListRaw } from './utils/clients.mapper';
-import { ForbiddenException } from '@nestjs/common';
+import { status } from 'src/common/constants';
 
 /**
  * Servicio para gestionar la lógica de negocio relacionada con los clientes.
@@ -22,9 +18,6 @@ export class ClientsService {
   constructor(
     @InjectRepository(Client)
     private readonly clientRepository: Repository<Client>,
-
-    @InjectRepository(EconomicStatus)
-    private readonly economicStatusRepository: Repository<EconomicStatus>,
 
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
@@ -40,38 +33,41 @@ export class ClientsService {
    * @returns {Promise<Client>} El cliente recién creado.
    * @throws {BadRequestException} Si ya existe un cliente asociado al usuario o si el rol del usuario no es válido.
    */
-  async create(dto: CreateClientDto, user: { userId: number; role: string }) {
-    const existing = await this.clientRepository.findOne({
-      where: { user: { id: user.userId } },
-    });
-  
-    if (existing) {
-      throw new BadRequestException('El cliente ya existe');
+  async create(dto: CreateClientDto, user: { userId: string }) {
+    try {
+      const existing = await this.findExistUser(user.userId)
+      
+      if ((existing as { type: status; message: string }).type) {
+        return existing
+      }
+
+      const userEntity = await this.userRepository.findOneBy({ id: user.userId });
+      if (!userEntity) {
+        throw new BadRequestException('tu usuario no fue encontrado encontrado');
+      }
+    
+      await this.clientRepository
+          .createQueryBuilder()
+          .insert()
+          .into('client')
+          .values({
+            phone: dto.phone,
+            birth_date: dto.birth_date,
+            gender: dto.gender,
+            user: { id: user.userId },
+          })
+          .execute();
+      return {
+        type: status.SUCCESS,
+        message: 'todo salio perfecto'
+      }
+      
+    } catch {
+      return {
+        type: status.ERROR,
+        message: 'problemas al momento de crear'
+      }
     }
-  
-    if (user.role !== RoleType.USER) {
-      throw new BadRequestException('Solo los usuarios pueden crear clientes');
-    }
-  
-    const economicStatus = await this.economicStatusRepository.findOneBy({ id: 1 });
-    if (!economicStatus) {
-      throw new BadRequestException('Estado económico por defecto (id=1) no encontrado');
-    }
-  
-    const userEntity = await this.userRepository.findOneBy({ id: user.userId });
-    if (!userEntity) {
-      throw new BadRequestException('Usuario no encontrado');
-    }
-  
-    const client = this.clientRepository.create({
-      address: dto.address,
-      phone: dto.phone,
-      user: userEntity,
-      economicStatus,
-    });
-  
-    const saved = await this.clientRepository.save(client);
-    return mapClient(saved);
   }
 
   /**
@@ -103,25 +99,22 @@ export class ClientsService {
    * }]
    */
   async findAll() {
-    const clients = await this.clientRepository
+    return await this.clientRepository
       .createQueryBuilder('client')
       .leftJoin('client.user', 'user')
       .leftJoin('user.role', 'role')
-      .leftJoin('client.economicStatus', 'economicStatus')
       .select([
         'client.id',
-        'client.address',
-        'client.phone',
-        'client.deleted',
         'user.name',
         'user.email',
+        'client.phone',
+        'client.birth_date',
+        'Client.gender',
         'role.description',
-        'economicStatus.level',
+        'client.deleted',
       ])
       .where('client.deleted = :deleted', { deleted: false })
       .getRawMany();
-  
-    return clients.map(mapClientListRaw);
   }
 
   /**
@@ -130,11 +123,21 @@ export class ClientsService {
    * @returns {Promise<Client[]>} Una lista de clientes activos.
    */
   async findActives() {
-    const clients = await this.clientRepository.find({
-      where: { deleted: false },
-      relations: ['user', 'user.role', 'economicStatus'],
-    });
-    return clients.map(mapClientList)
+    return await this.clientRepository.
+    createQueryBuilder('client')
+      .leftJoin('client.user', 'user')
+      .leftJoin('user.role', 'role')
+      .select([
+        'client.id',
+        'user.name',
+        'user.email',
+        'client.phone',
+        'client.birth_date',
+        'Client.gender',
+        'role.description',
+        'client.deleted',
+      ])
+      .getRawMany();
   }
 
   /**
@@ -144,15 +147,55 @@ export class ClientsService {
    * @returns {Promise<Client>} El cliente correspondiente al ID.
    * @throws {NotFoundException} Si no se encuentra el cliente.
    */
-  async findOne(id: number) {
-    const client = await this.clientRepository.findOne({
-      where: { id, deleted: false },
-      relations: ['user', 'user.role', 'economicStatus'],
-    });
+  async findOne(id: string) {
+    const client = await this.clientRepository
+    .createQueryBuilder('client')
+    .leftJoin('client.user', 'user')
+    .select([
+      'client.id',
+      'user.name',
+      'user.email',
+      'client.phone',
+      'client.birth_date',
+      'Client.gender',
+    ])
+    .where('client.deleted = :deleted', { deleted: false })
+    .andWhere('client.id = :id', { id })
+    .getOne();
 
-    if (!client) throw new NotFoundException('Cliente no encontrado');
-    return mapClientList(client);
+    if (!client) return{
+          type: status.ERROR,
+          message: 'cliente no encontrada',
+    };
+    return client;
   }
+
+  async findOwnClient(userId: string) {
+    const client = await this.clientRepository
+      .createQueryBuilder('client')
+      .leftJoin('client.user', 'user')
+      .select([
+        'client.id',
+        'user.name',
+        'user.email',
+        'client.phone',
+        'client.birth_date',
+        'client.gender',
+      ])
+      .where('client.deleted = false')
+      .andWhere('user.id = :userId', { userId })
+      .getOne();
+  
+    if (!client) {
+      return {
+        type: status.ERROR,
+        message: 'No te hemos encontrado',
+      };
+    }
+  
+    return client
+  }
+  
 
   /**
    * Obtiene el cliente asociado a un usuario.
@@ -161,14 +204,35 @@ export class ClientsService {
    * @returns {Promise<Client>} El cliente asociado al usuario.
    * @throws {NotFoundException} Si no se encuentra el cliente del usuario.
    */
-  async findByUser(userId: number) {
-    const client = await this.clientRepository.findOne({
-      where: { user: { id: userId }, deleted: false },
-      relations: ['user', 'economicStatus'],
-    });
+  async findExistClient(id: string) {
+    const exist = await this.clientRepository
+    .createQueryBuilder('client')
+    .where('client.id = :id', { id })
+    .andWhere('client.deleted = false')
+    .getExists();
 
-    if (!client) throw new NotFoundException('Cliente no encontrado');
-    return mapClient(client);
+    if (!exist) return{type:status.ERROR, message: 'No te hemos encontrado'}
+  }
+
+  async findNotExistClient(id: string) {
+    const notExist = await this.clientRepository
+    .createQueryBuilder('client')
+    .where('client.id = :id', { id })
+    .andWhere('client.deleted = true')
+    .getExists();
+
+    if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
+  }
+
+  async findExistUser( userId: string) {
+    const exist = await this.clientRepository
+    .createQueryBuilder('client')
+    .innerJoin('client.user', 'user')
+    .where('user.id = :userId', { userId })
+    .andWhere('client.deleted = false')
+    .getExists();
+
+    if (!exist) return{type:status.WARNING, message: 'Ya existes'}
   }
 
   /**
@@ -184,44 +248,37 @@ export class ClientsService {
    * @throws {ForbiddenException} Si el usuario no tiene permiso para actualizar el cliente.
    * @throws {BadRequestException} Si el estado económico seleccionado no es válido.
    */
-  async update(id: number, dto: UpdateClientDto, user: { userId: number; role: string }) {
-    const client = await this.clientRepository.findOne({
-      where: { id, deleted: false },
-      relations: ['user', 'economicStatus'],
-    });
+  async update(id: string, dto: UpdateClientDto) {
+    const exist = await this.findExistClient(id);
 
-    if (!client) {
-      throw new NotFoundException('El cliente no existe o está eliminado');
+    if ((exist as {type: status; message: string}).type) {
+      return exist
     }
 
-    const isOwner = client.user.id === user.userId;
-    const isAdminOrModerator = [RoleType.ADMIN, RoleType.MODERATOR].includes(user.role as RoleType);
-
-    if (isOwner && user.role === RoleType.USER) {
-      if (dto.economicStatusId) {
-        throw new ForbiddenException('No tienes permiso para modificar el estado económico');
-      }
-
-      if (dto.address) client.address = dto.address;
-      if (dto.phone) client.phone = dto.phone;
-    } 
-    else if (isAdminOrModerator) {
-      if (dto.economicStatusId) {
-        const status = await this.economicStatusRepository.findOneBy({ id: dto.economicStatusId });
-        if (!status) {
-          throw new BadRequestException('El estado económico seleccionado no es válido');
-        }
-        client.economicStatus = status;
-      }
-      if (dto.address) client.address = dto.address;
-      if (dto.phone) client.phone = dto.phone;
-    }
-    else {
-      throw new ForbiddenException('No tienes autorización para actualizar este cliente');
+    try {
+      await this.clientRepository
+        .createQueryBuilder()
+        .update('client')
+        .set({
+          phone: dto.phone,
+          birth_date: dto.birth_date,
+          gender: dto.gender,
+        })
+        .where('client.id = :id', { id })
+        .andWhere('client.deleted = false')
+        .execute();
+  
+      return {
+        type: status.SUCCESS,
+        message: 'Cliente actualizado correctamente',
+      };
+    } catch  {
+      return {
+        type: status.ERROR,
+        message: 'Hubo un error al actualizar el cliente',
+      };
     }
 
-    const saved = await this.clientRepository.save(client);
-    return mapClient(saved);
   }
 
   /**
@@ -230,30 +287,46 @@ export class ClientsService {
    * @param {number} id - El ID del cliente a eliminar.
    * @returns {Promise<Client>} El cliente eliminado.
    */
-  async remove(id: number) {
-    const client = await this.clientRepository.findOne({
-      where: { id, deleted: false },
-      relations: ['user', 'economicStatus'],
-    });
-    client.deleted = true;
-    const saved = await this.clientRepository.save(client);
-    return mapClient(saved);
-  }
+  async remove(id: string, userId: string) {
+    const clientExist = await this.findExistClient(id)
+    if((clientExist as {type:status; message:string}).type){
+      return clientExist
+    }
+    try {
+      await this.clientRepository.manager.transaction(async (transactionalEntityManager) => {
 
-  /**
-   * Elimina el cliente asociado a un usuario.
-   * 
-   * @param {number} userId - El ID del usuario cuyo cliente será eliminado.
-   * @returns {Promise<Client>} El cliente eliminado.
-   */
-  async removeSelf(userId: number) {
-    const client = await this.clientRepository.findOne({
-      where: { user: { id: userId }, deleted: false },
-      relations: ['user', 'economicStatus'],
-    });
-    client.deleted = true;
-    const saved = await this.clientRepository.save(client);
-    return mapClient(saved);
+        const clientRemove = await transactionalEntityManager
+        .createQueryBuilder()
+        .update('client')
+        .set({ deleted: true })
+        .where('id = :id', { id })
+        .andWhere('client.deleted = false')
+        .execute();
+
+        if (clientRemove.affected === 0) {
+          return{
+            type: status.ERROR,
+            message: 'no hemos podido eliminarte'
+          }
+        }
+
+        const userRemove = await this.userRepository.remove(userId)
+        if ((userRemove as {type:status; message: string}).type){
+          return userRemove
+        }
+      })
+
+    return {
+      type: status.SUCCESS,
+      message: 'has sido elimado desactivados correctamente',
+    }
+      
+    } catch  {
+      return {
+        type: status.ERROR,
+        mesage: 'A ocurrido un error al eliminarte'
+      }
+    }
   }
 
   /**
@@ -262,13 +335,45 @@ export class ClientsService {
    * @param {number} id - El ID del cliente a restaurar.
    * @returns {Promise<Client>} El cliente restaurado.
    */
-  async restore(id: number) {
-    const client = await this.clientRepository.findOne({
-      where: { id, deleted: true },
-      relations: ['user', 'economicStatus'],
-    });
-    client.deleted = false;
-    const saved = await this.clientRepository.save(client);
-    return mapClient(saved);
+  async restore(id: string, userId: string) {
+    const clientNotExist = await this.findNotExistClient(id)
+    if((clientNotExist as {type:status; message:string}).type){
+      return clientNotExist
+    }
+    try {
+      await this.clientRepository.manager.transaction(async (transactionalEntityManager) => {
+
+        const clientRestore = await transactionalEntityManager
+        .createQueryBuilder()
+        .update('client')
+        .set({ deleted: false })
+        .where('id = :id', { id })
+        .andWhere('client.deleted = false')
+        .execute();
+
+        if (clientRestore .affected === 0) {
+          return{
+            type: status.ERROR,
+            message: 'no hemos podido restaurar al cliente'
+          }
+        }
+
+        const userRestore = await this.userRepository.restore(userId)
+        if ((userRestore as {type:status; message: string}).type){
+          return userRestore
+        }
+      })
+
+    return {
+      type: status.SUCCESS,
+      message: 'has sido elimado desactivados correctamente',
+    }
+      
+    } catch  {
+      return {
+        type: status.ERROR,
+        mesage: 'A ocurrido un error al eliminarte'
+      }
+    }
   }
 }

@@ -3,7 +3,6 @@ import { ClientsService } from './clients.service';
 import { ClientsController } from './clients.controller';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Client } from './entities/client.entity';
-import { EconomicStatus } from 'src/economic_status/entities/economic_status.entity';
 import { User } from 'src/users/entities/user.entity';
 
 /**
@@ -21,7 +20,7 @@ import { User } from 'src/users/entities/user.entity';
      * 
      * @returns {TypeOrmModule} El módulo configurado con las entidades.
      */
-    TypeOrmModule.forFeature([Client, EconomicStatus, User]),
+    TypeOrmModule.forFeature([Client, User]),
   ],
   controllers: [
     /**
