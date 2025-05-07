@@ -55,16 +55,23 @@ export class RolesService {
    * @throws Error si no se encuentran roles.
    * pnpm run seed guarda datos predeterminados
    */
-  async findAll() {
-      return await this.roleRepository
+
+  private async getRoles(whereClause?: string) {
+    const query = this.roleRepository
       .createQueryBuilder('role')
       .select([
         'role.id',
         'role.description',
         'role.deleted',
-      ])
-      .getRawMany();
-    }
+      ]);
+    
+    if (whereClause) query.where(whereClause);
+  
+    return query.getRawMany();
+  }
+  async findAll() {
+      return await this.getRoles()
+  }
     
   /**
    * Obtiene todos los roles que no están marcados como eliminados.
@@ -72,15 +79,7 @@ export class RolesService {
    * @returns Lista de roles activos junto con sus relaciones (por ejemplo, usuarios).
    */
   async findActives() {
-    return await this.roleRepository
-      .createQueryBuilder('role')
-      .select([
-        'role.id',
-        'role.description',
-        'role.deleted',
-      ])
-      .where('role.deleted = false')
-      .getRawMany();
+    return await this.getRoles('role.deleted = false')
   }
 
   /**
@@ -108,7 +107,21 @@ export class RolesService {
     return successResponse('Hemos encontrado el rol', role)
   }
 
-  async checkRoleStatus(id: string, deleted: boolean, errorMsg: string){
+  async findOneDescription(description: string):Promise<SuccessResponse|ErrorResponse>{
+
+    const role = this.roleRepository
+    .createQueryBuilder('role')
+    .select([
+      'role.id'
+    ])
+    .where('role.description = :description', { description })
+    .getOne();
+
+    if (!role) return errorResponse('Ese rol no existe');
+    return successResponse('El rol ha sido encontrado', role)
+  }
+
+  private async checkRoleStatus(id: string, deleted: boolean, errorMsg: string){
     const role = await this.roleRepository
     .createQueryBuilder('role')
     .where('role.deleted = :deleted', { deleted })
@@ -132,10 +145,9 @@ export class RolesService {
     .createQueryBuilder('role')
     .where('role.description = :description', { description })
     .andWhere('role.deleted = false')
-    .getExists();
+    .getOne();
 
     return isRoleExisting ? errorResponse('Ese rol ya existe') : true;
-
   }
   /**
    * Actualiza un rol existente por ID.
@@ -169,22 +181,22 @@ export class RolesService {
   }
   
 
-  private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
-    try {
-      await this.roleRepository
-        .createQueryBuilder()
-        .update(Role)
-        .set({ deleted })
-        .where('id = :id', { id })
-        .execute();
-  
-      return successResponse(successMsg);
-    } catch (error) {
-      console.error('[RolesService][toggleDelete] error de la accion', error);
-      
-      return errorResponse(errorMsg);
-    }
+private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
+  try {
+    await this.roleRepository
+      .createQueryBuilder()
+      .update(Role)
+      .set({ deleted })
+      .where('id = :id', { id })
+      .execute();
+
+    return successResponse(successMsg);
+  } catch (error) {
+    console.error('[RolesService][toggleDelete] error de la accion', error);
+    
+    return errorResponse(errorMsg);
   }
+}
   
   async remove(id: string) {
     const isActive = await this.isRoleActive(id);

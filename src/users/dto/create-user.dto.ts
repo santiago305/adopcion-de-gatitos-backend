@@ -34,5 +34,5 @@ export class CreateUserDto {
    */
   @IsOptional()
   @IsNotEmpty()
-  roleId?: number;
+  roleId?: string;
 }

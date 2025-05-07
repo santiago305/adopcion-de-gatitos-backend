@@ -5,6 +5,7 @@ import {
   ManyToOne,
   JoinColumn,
   OneToOne,
+  CreateDateColumn,
 } from 'typeorm';
 import { Role } from '../../roles/entities/role.entity';
 import { Client } from 'src/clients/entities/client.entity';
@@ -19,7 +20,7 @@ export class User {
    * Identificador único del usuario.
    */
   @PrimaryGeneratedColumn()
-  id: number;
+  id: string
 
   /**
    * Nombre del usuario.
@@ -54,4 +55,7 @@ export class User {
 
   @OneToOne(() => Client, (client) => client.user)
   client: Client;
+
+  @CreateDateColumn({ name: 'created_at' })
+    createdAt: Date;
 }

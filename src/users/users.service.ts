@@ -1,125 +1,98 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
-import { mapUser, mapUserList } from './utils/user.mapper';
-import { RoleType, status } from 'src/common/constants';
+import { RoleType } from 'src/common/constants';
+import { errorResponse, successResponse } from 'src/common/utils/response';
+import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
+import { isErrorResponse } from 'src/common/guards/guard';
+import { RolesService } from '../roles/roles.service';
 
-/**
- * UsersService proporciona operaciones CRUD para los usuarios del sistema.
- * Incluye creación, actualización, recuperación, eliminación lógica y restauración.
- */
 @Injectable()
 export class UsersService {
   constructor(
     @InjectRepository(User)
     private readonly userRepository: Repository<User>,
-    @InjectRepository(Role)
-    private readonly roleRepository: Repository<Role>,
+
+    private readonly rolesService: RolesService,
   ) {}
 
-  /**
-   * Retorna todos los usuarios activos (no eliminados).
-   * @returns Lista de usuarios
-   */
+  private async getUsers(whereClause?: string) {
+    const query = this.userRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.role', 'role')
+      .select([
+        'user.id',
+        'user.name',
+        'user.email',
+        'role.description',
+        'user.deleted',
+      ]);
+    
+    if (whereClause) query.where(whereClause);
+  
+    return query.getRawMany();
+  }
+  
   async findAll() {
-    return await this.userRepository
-    .createQueryBuilder('user')
-    .leftJoin('user.role', 'role')
-    .select([
-      'user.id',
-      'user.name',
-      'user.email',
-      'role.description',
-      'user.deleted',
-    ])
-    .getRawMany();
+    return await this.getUsers()
   }
 
-  /**
-   * Alias de `findAll` para obtener usuarios activos.
-   * @returns Lista de usuarios activos
-   */
   async findActives() {
-    return await this.userRepository
-    .createQueryBuilder('user')
-    .leftJoin('user.role', 'role')
-    .select([
-      'user.id',
-      'user.name',
-      'user.email',
-      'role.description',
-      'user.deleted',
-    ])
-    .where('user.deleted = :deleted', { deleted: false })
-    .getRawMany();
+    return await this.getUsers('role.deleted = false')
   }
 
-  /**
-   * Busca un usuario por su ID.
-   * @param id ID del usuario
-   * @throws NotFoundException si no se encuentra
-   * @returns Usuario encontrado
-   */
-  async findOne(id: string) {
+  async findOne(id: string):Promise<SuccessResponse | ErrorResponse> {
     const user = await this.userRepository
     .createQueryBuilder('user')
     .leftJoin('user.role', 'role')
-    .select([
-      'user.id',
-      'user.name',
-      'user.email',
-      'role.description',
-      'user.deleted',
-    ])
     .where('user.deleted = :deleted', { deleted: false })
     .andWhere('user.id = :id', { id })
     .getOne();
     
-    if (!user) return {
-      type: status.ERROR,
-      message: 'usuario no encontrado',
+    if(!user) return errorResponse('No hemos podido encotrar el usuario');
+
+    return successResponse('usuarios encontrado', user)
+  }
+  private async checkUserStatus(
+    idOrEmail: string, 
+    deleted: boolean = false, 
+    errorMsg: string, 
+    useEmail:boolean = false,
+    checkDelete: boolean = true
+    ){
+    const query = this.userRepository
+    .createQueryBuilder('user')
+
+    if(checkDelete){
+      query.andWhere('user.deleted = :deleted', { deleted })
     }
-  }
-  async findExistUser(id: string) {
-    const notExist = await this.userRepository
-    .createQueryBuilder('user')
-    .where('user.id = :id', { id })
-    .andWhere('user.deleted = false')
-    .getExists();
-
-    if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
-  }
-  async findNotExistUser(id: string) {
-    const notExist = await this.userRepository
-    .createQueryBuilder('user')
-    .where('user.id = :id', { id })
-    .andWhere('user.deleted = true')
-    .getExists();
-
-    if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
-  }
-
-  async findOwnUser(userId: string) {
-    const user = await this.findOne(userId)
-  
-    if ((user as {type:status; message:string}).type) {
-      return user
+    if (useEmail) {
+      query.andWhere('user.email = :email', { email: idOrEmail });
+    } else {
+      query.andWhere('user.id = :id', { id: idOrEmail });
     }
   
-    return user
+    const exists = await query.getExists();
+
+    if (!exists) return errorResponse(errorMsg)
+
+    return true
   }
-  /**
-   * Busca un usuario por su correo electrónico.
-   * @param email Email del usuario
-   * @throws NotFoundException si no se encuentra
-   * @returns Usuario encontrado
-   */
-  async findByEmail(email: string) {
+  async isUserActive(id: string) {
+    return await this.checkUserStatus(id, false, 'El usuario ingresado no existe')
+  }
+  async isUserDeleted(id: string) {
+    return await this.checkUserStatus(id, true, 'Este usuario todavia no ha sido eliminado')
+  }
+
+  async isUserEmail(email: string) {
+    return await this.checkUserStatus(email, false, 'Este usuario ya existe', true, false)
+  }
+  async findByEmail(email: string): Promise<SuccessResponse | ErrorResponse> {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
@@ -128,127 +101,114 @@ export class UsersService {
         'user.password'
       ])
       .where('user.email = :email', { email })
-      .andWhere('user.deleted = :deleted', { deleted: false })
+      .andWhere('user.deleted = false')
       .getOne();
   
-    if (!user) return {type:status.ERROR, message: 'No hemos encontrado tu usuario'}
+    if (!user) return errorResponse('No hemos encontrado el usuario');
+
+    return successResponse('Usuario encontrado', user);
+  }
+  async findOwnUser(userId: string): Promise<SuccessResponse | ErrorResponse> {
+    const user = await this.findOne(userId);
     return user;
   }
-  
-  async findExistEmail(email: string) {
-    const user = await this.userRepository
-      .createQueryBuilder('user')
-      .where('user.email = :email', { email })
-      .andWhere('user.deleted = :deleted', { deleted: false })
-      .getExists();
-  
-    if (!user) return {type:status.WARNING, message: 'Este email ya esta siendo utilizado'};
 
-    return null
-  }
-
-  /**
-   * Crea un nuevo usuario con contraseña encriptada usando argon2id.
-   * @param dto Datos de creación del usuario
-   * @throws BadRequestException si el email ya está en uso
-   * @returns Usuario creado
-   */
-  async create(dto: CreateUserDto, requesterRole: string) {
-    const existing = await this.findExistEmail(dto.email);
+  async create(dto: CreateUserDto, requesterRole: string):Promise<SuccessResponse | ErrorResponse> {
+    const existing = await this.isUserEmail(dto.email);
   
-    if ((existing as { type: status; message: string })?.type) {
-      return existing;
-    }
+    if (isErrorResponse(existing))return existing;
   
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });
+
+    
+    const isAdmin = requesterRole === RoleType.ADMIN;
+
+    const targetRoleType = isAdmin ? dto.roleId ?? RoleType.USER : RoleType.USER;
   
-    const DEFAULT_ROLE_ID = 3;
-    const roleId = requesterRole === RoleType.ADMIN
-      ? dto.roleId ?? DEFAULT_ROLE_ID
-      : DEFAULT_ROLE_ID;
+    const role = await this.rolesService.findOneDescription(targetRoleType)
+    if (isErrorResponse(role)) return role;
   
-    const roleExists = await this.roleRepository
-      .createQueryBuilder('role')
-      .where('role.id = :id', { id: roleId })
-      .getExists();
-  
-    if (!roleExists) {
-      return {
-        type: status.ERROR,
-        message: 'Ese rol no existe',
-      };
+    try {
+      await this.userRepository
+        .createQueryBuilder()
+        .insert()
+        .into(User)
+        .values({
+          name: dto.name,
+          email: dto.email,
+          password: hashedPassword,
+          role: { id: role.data.id }
+        })
+        .execute();
+    
+      return successResponse('Usuario creado correctamente') 
+    } catch (error) {
+      console.error('[UsersService][create] error al crear un usuario: ',error);
+      return errorResponse('Se a producido un error al crear al usuario')  
     }
-  
-    await this.userRepository
-      .createQueryBuilder()
-      .insert()
-      .into('user')
-      .values({
-        name: dto.name,
-        email: dto.email,
-        password: hashedPassword,
-        role: { id: roleId },
-      })
-      .execute();
-  
-    return {
-      type: status.SUCCESS,
-      message: 'Usuario creado correctamente',
-    };
   }
   
+  async update(id: string, dto: UpdateUserDto):Promise <SuccessResponse | ErrorResponse> {
+    const user = await this.findOne(id)
+    if (isErrorResponse(user)) return user;
 
-  /**
-   * Actualiza los datos de un usuario.
-   * Si se cambia la contraseña, la nueva se encripta con argon2id.
-   * @param id ID del usuario a actualizar
-   * @param dto Datos de actualización
-   * @throws NotFoundException si el usuario no existe
-   * @throws BadRequestException si el nuevo email ya está en uso
-   * @returns Usuario actualizado
-   */
-  async update(id: number, dto: UpdateUserDto) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['role'],
-    });
-
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-
-    if (dto.email && dto.email !== user.email) {
-      const existing = await this.userRepository.findOne({ where: { email: dto.email } });
-      if (existing && existing.id !== id) {
-        throw new BadRequestException('El correo electrónico ya está en uso por otro usuario');
-      }
+    const updateData: Partial<User> = {};
+    if (dto.email) {
+      const existing = await this.isUserEmail(dto.email);
+      if(isErrorResponse(existing)) return existing;
+      updateData.email = dto.email;
     }
 
-    if (dto.name) user.name = dto.name;
-    if (dto.email) user.email = dto.email;
+    if (dto.name) updateData.name = dto.name;
+    if (dto.email) updateData.email = dto.email;
     if (dto.password) {
-      user.password = await argon2.hash(dto.password, {
+      updateData.password = await argon2.hash(dto.password, {
         type: argon2.argon2id,
       });
     }
-    if (dto.roleId) user.role = { id: dto.roleId } as Role;
 
-    await this.userRepository.save(user);
-    return mapUserList(user);
+    try {
+
+      await this.userRepository
+      .createQueryBuilder()
+      .update(User)
+      .set(updateData)
+      .where('id = :id',{id})
+      .execute();
+
+      const updateUser = await this.findOne(id)
+
+      return successResponse('Modificacion terminada', updateUser)
+    } catch (error) {
+      console.error('[UserService][update] error al editar el usuario: ', error);
+      return errorResponse('No pudimos modificar el usuario')
+      
+    }
   }
 
-  /**
-   * Elimina lógicamente un usuario (soft delete).
-   * @param id ID del usuario
-   * @throws NotFoundException si el usuario no existe
-   * @returns Usuario marcado como eliminado
-   */
-  async remove(id: number) {
-    const user = await this.userRepository.findOne({ where: { id } });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    user.deleted = true;
-    const saved = await this.userRepository.save(user);
-    return mapUserList(saved);
+  
+  private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
+      try {
+        await this.userRepository
+          .createQueryBuilder()
+          .update(User)
+          .set({ deleted })
+          .where('id = :id', { id })
+          .execute();
+    
+        return successResponse(successMsg);
+      } catch (error) {
+        console.error('[UserService][toggleDelete] error de la accion', error);
+        
+        return errorResponse(errorMsg);
+      }
+    }
+  async remove(id: string) {
+    const isActive = await this.isUserActive(id);
+    if (isErrorResponse(isActive)) return isActive; 
+    return this.toggleDelete(id, true, 'El usuario ha sido eliminado','no se pudo eliminar al usuario')
   }
 
   /**
@@ -257,14 +217,9 @@ export class UsersService {
    * @throws NotFoundException si el usuario no existe
    * @returns Usuario restaurado
    */
-  async restore(id: number) {
-    const user = await this.userRepository.findOne({
-      where: { id },
-      relations: ['role'],
-    });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    user.deleted = false;
-    const saved = await this.userRepository.save(user);
-    return mapUserList(saved);
+  async restore(id: string ) {
+    const isDeleted = await this.isUserDeleted(id)
+    if (isErrorResponse(isDeleted)) return isDeleted; 
+    return this.toggleDelete(id, false, 'El usuario ha sido restaurado','No se pudo restaurar al usuario')
   }
 }
