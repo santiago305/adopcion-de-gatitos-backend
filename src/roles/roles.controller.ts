@@ -67,7 +67,7 @@ export class RolesController {
    */
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.rolesService.findOne(+id);
+    return this.rolesService.findOne(id);
   }
 
   /**
@@ -80,7 +80,7 @@ export class RolesController {
    */
   @Patch(':id')
   update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-    return this.rolesService.update(+id, dto);
+    return this.rolesService.update(id, dto);
   }
 
   /**
@@ -92,7 +92,7 @@ export class RolesController {
    */
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.rolesService.remove(+id);
+    return this.rolesService.remove(id);
   }
 
   /**
@@ -104,6 +104,6 @@ export class RolesController {
    */
   @Patch(':id/restore')
   restore(@Param('id') id: string) {
-    return this.rolesService.restore(+id);
+    return this.rolesService.restore(id);
   }
 }

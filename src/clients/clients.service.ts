@@ -35,7 +35,7 @@ export class ClientsService {
    */
   async create(dto: CreateClientDto, user: { userId: string }) {
     try {
-      const existing = await this.findExistUser(user.userId)
+      const existing = await this.userRepository.findExistUser(user.userId)
       
       if ((existing as { type: status; message: string }).type) {
         return existing
@@ -113,7 +113,6 @@ export class ClientsService {
         'role.description',
         'client.deleted',
       ])
-      .where('client.deleted = :deleted', { deleted: false })
       .getRawMany();
   }
 
@@ -137,6 +136,7 @@ export class ClientsService {
         'role.description',
         'client.deleted',
       ])
+      .where('client.deleted = :deleted', { deleted: false })
       .getRawMany();
   }
 
@@ -165,7 +165,7 @@ export class ClientsService {
 
     if (!client) return{
           type: status.ERROR,
-          message: 'cliente no encontrada',
+          message: 'cliente no encontrado',
     };
     return client;
   }
@@ -224,16 +224,6 @@ export class ClientsService {
     if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
   }
 
-  async findExistUser( userId: string) {
-    const exist = await this.clientRepository
-    .createQueryBuilder('client')
-    .innerJoin('client.user', 'user')
-    .where('user.id = :userId', { userId })
-    .andWhere('client.deleted = false')
-    .getExists();
-
-    if (!exist) return{type:status.WARNING, message: 'Ya existes'}
-  }
 
   /**
    * Actualiza un cliente existente.

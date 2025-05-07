@@ -28,7 +28,9 @@ export class AuthService {
    */
   async validateUser(email: string, password: string) {
     const user = await this.usersService.findByEmail(email);
-    if (!user || user.deleted) {
+
+    if (!user) {
+      await argon2.verify(argon2.hash('dummy'), password);
       throw new UnauthorizedException('Credenciales inválidas');
     }
 

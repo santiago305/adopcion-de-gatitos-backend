@@ -7,7 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import { Role } from 'src/roles/entities/role.entity';
 import * as argon2 from 'argon2';
 import { mapUser, mapUserList } from './utils/user.mapper';
-import { RoleType } from 'src/common/constants';
+import { RoleType, status } from 'src/common/constants';
 
 /**
  * UsersService proporciona operaciones CRUD para los usuarios del sistema.
@@ -27,11 +27,17 @@ export class UsersService {
    * @returns Lista de usuarios
    */
   async findAll() {
-    const users = await this.userRepository.find({
-      where: { deleted: false },
-      relations: ['role'],
-    });
-    return users.map(mapUserList);
+    return await this.userRepository
+    .createQueryBuilder('user')
+    .leftJoin('user.role', 'role')
+    .select([
+      'user.id',
+      'user.name',
+      'user.email',
+      'role.description',
+      'user.deleted',
+    ])
+    .getRawMany();
   }
 
   /**
@@ -39,11 +45,18 @@ export class UsersService {
    * @returns Lista de usuarios activos
    */
   async findActives() {
-    const users = await this.userRepository.find({
-      where: { deleted: false },
-      relations: ['role'],
-    });
-    return users.map(mapUserList);
+    return await this.userRepository
+    .createQueryBuilder('user')
+    .leftJoin('user.role', 'role')
+    .select([
+      'user.id',
+      'user.name',
+      'user.email',
+      'role.description',
+      'user.deleted',
+    ])
+    .where('user.deleted = :deleted', { deleted: false })
+    .getRawMany();
   }
 
   /**
@@ -52,15 +65,54 @@ export class UsersService {
    * @throws NotFoundException si no se encuentra
    * @returns Usuario encontrado
    */
-  async findOne(id: number) {
-    const user = await this.userRepository.findOne({
-      where: { id, deleted: false },
-      relations: ['role'],
-    });
-    if (!user) throw new NotFoundException('Usuario no encontrado');
-    return mapUserList(user);
+  async findOne(id: string) {
+    const user = await this.userRepository
+    .createQueryBuilder('user')
+    .leftJoin('user.role', 'role')
+    .select([
+      'user.id',
+      'user.name',
+      'user.email',
+      'role.description',
+      'user.deleted',
+    ])
+    .where('user.deleted = :deleted', { deleted: false })
+    .andWhere('user.id = :id', { id })
+    .getOne();
+    
+    if (!user) return {
+      type: status.ERROR,
+      message: 'usuario no encontrado',
+    }
+  }
+  async findExistUser(id: string) {
+    const notExist = await this.userRepository
+    .createQueryBuilder('user')
+    .where('user.id = :id', { id })
+    .andWhere('user.deleted = false')
+    .getExists();
+
+    if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
+  }
+  async findNotExistUser(id: string) {
+    const notExist = await this.userRepository
+    .createQueryBuilder('user')
+    .where('user.id = :id', { id })
+    .andWhere('user.deleted = true')
+    .getExists();
+
+    if (!notExist) return{type:status.WARNING, message: 'este usuario no ha sido eliminado'}
   }
 
+  async findOwnUser(userId: string) {
+    const user = await this.findOne(userId)
+  
+    if ((user as {type:status; message:string}).type) {
+      return user
+    }
+  
+    return user
+  }
   /**
    * Busca un usuario por su correo electrónico.
    * @param email Email del usuario
@@ -68,13 +120,31 @@ export class UsersService {
    * @returns Usuario encontrado
    */
   async findByEmail(email: string) {
-    const user = await this.userRepository.findOne({
-      where: { email, deleted: false },
-      relations: ['role'],
-    });
-    if (!user) throw new NotFoundException('Usuario no encontrado por email');
-    // return this.mapUser(user);
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.role', 'role')
+      .select([
+        'user.email',
+        'user.password'
+      ])
+      .where('user.email = :email', { email })
+      .andWhere('user.deleted = :deleted', { deleted: false })
+      .getOne();
+  
+    if (!user) return {type:status.ERROR, message: 'No hemos encontrado tu usuario'}
     return user;
+  }
+  
+  async findExistEmail(email: string) {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .andWhere('user.deleted = :deleted', { deleted: false })
+      .getExists();
+  
+    if (!user) return {type:status.WARNING, message: 'Este email ya esta siendo utilizado'};
+
+    return null
   }
 
   /**
@@ -84,32 +154,51 @@ export class UsersService {
    * @returns Usuario creado
    */
   async create(dto: CreateUserDto, requesterRole: string) {
-    const existing = await this.userRepository.findOneBy({ email: dto.email });
-    if (existing) {
-      throw new BadRequestException('El email ya está en uso');
+    const existing = await this.findExistEmail(dto.email);
+  
+    if ((existing as { type: status; message: string })?.type) {
+      return existing;
     }
-
+  
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });
-
+  
     const DEFAULT_ROLE_ID = 3;
-    const roleId = requesterRole === RoleType.ADMIN ? (dto.roleId ?? DEFAULT_ROLE_ID) : DEFAULT_ROLE_ID;
-
-    const roleExists = await this.roleRepository.findOneBy({ id: roleId });
+    const roleId = requesterRole === RoleType.ADMIN
+      ? dto.roleId ?? DEFAULT_ROLE_ID
+      : DEFAULT_ROLE_ID;
+  
+    const roleExists = await this.roleRepository
+      .createQueryBuilder('role')
+      .where('role.id = :id', { id: roleId })
+      .getExists();
+  
     if (!roleExists) {
-      throw new BadRequestException(`Rol con ID ${roleId} no existe`);
+      return {
+        type: status.ERROR,
+        message: 'Ese rol no existe',
+      };
     }
-
-    const user = this.userRepository.create({
-      ...dto,
-      password: hashedPassword,
-      role: { id: roleId },
-    });
-
-    const saved = await this.userRepository.save(user);
-    return mapUser(saved);
+  
+    await this.userRepository
+      .createQueryBuilder()
+      .insert()
+      .into('user')
+      .values({
+        name: dto.name,
+        email: dto.email,
+        password: hashedPassword,
+        role: { id: roleId },
+      })
+      .execute();
+  
+    return {
+      type: status.SUCCESS,
+      message: 'Usuario creado correctamente',
+    };
   }
+  
 
   /**
    * Actualiza los datos de un usuario.

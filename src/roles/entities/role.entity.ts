@@ -1,5 +1,5 @@
-import { User } from 'src/users/entities/user.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { User } from 'users/entities/user.entity';
 
 /**
  * Entidad `Role` que representa los diferentes roles de usuario en el sistema.
@@ -13,8 +13,8 @@ export class Role {
    * Identificador único del rol.
    * Se genera automáticamente al insertar un nuevo registro.
    */
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   /**
    * Descripción única del rol (por ejemplo: 'admin', 'user', 'moderator').
