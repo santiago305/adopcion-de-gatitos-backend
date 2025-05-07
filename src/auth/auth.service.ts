@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
@@ -32,9 +32,7 @@ export class AuthService {
   async validateUser(email: string, password: string) {
     const result = await this.usersService.findByEmail(email);
   
-    if (isTypeResponse(result)) {
-      throw new UnauthorizedException(result.message);
-    }
+    if (isTypeResponse(result)) return result
 
     const user = result.data;
   

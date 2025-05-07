@@ -25,7 +25,7 @@ import { Client } from 'src/clients/entities/client.entity';
  * ```
  */
 const dataSource = new DataSource({
-  type: 'mysql',
+  type: 'postgres',
   host: envs.db.host,
   port: envs.db.port,
   username: envs.db.username,

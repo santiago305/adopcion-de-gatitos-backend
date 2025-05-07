@@ -1,4 +1,7 @@
-import { IsEmail, IsString, IsStrongPassword } from 'class-validator';
+import { IsEmail,
+  IsString, 
+  // IsStrongPassword 
+} from 'class-validator';
 
 /**
  * DTO para la autenticación de un usuario al hacer login.
@@ -18,6 +21,6 @@ export class LoginAuthDto {
    * Contraseña del usuario. Debe ser una contraseña segura, validada con la regla IsStrongPassword().
    */
   @IsString()
-  @IsStrongPassword()
+  // @IsStrongPassword()
   password: string;
 }
