@@ -4,6 +4,7 @@ import {
   ErrorResponse,
   WarningResponse,
   InfoResponse,
+  InvalidResponse,
 } from "../interfaces/response.interface";
 
 export const successResponse = <T = any>(
@@ -27,5 +28,10 @@ export const warningResponse = (message): WarningResponse => ({
 
 export const infoResponse = (message): InfoResponse => ({
   type: status.INFO,
+  message,
+});
+
+export const invalidResponse = (message): InvalidResponse => ({
+  type: status.INVALID,
   message,
 });

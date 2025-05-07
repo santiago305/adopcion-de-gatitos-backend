@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { errorResponse, successResponse } from 'src/common/utils/response';
-import { isErrorResponse } from 'src/common/guards/guard';
+import {  isTypeResponse } from 'src/common/guards/guard';
 import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
 
 /**
@@ -28,7 +28,7 @@ export class RolesService {
    */
   async create(dto: CreateRoleDto):Promise<SuccessResponse | ErrorResponse> {
     const exists = await this.isRoleExisting(dto.description)
-    if (isErrorResponse(exists)) return exists;
+    if ( isTypeResponse(exists)) return exists;
     try {
      await this.roleRepository
     .createQueryBuilder()
@@ -158,7 +158,7 @@ export class RolesService {
    */
   async update(id: string, dto: UpdateRoleDto):Promise<SuccessResponse | ErrorResponse> {
     const exists = await this.isRoleActive(id);
-    if (isErrorResponse(exists)) return exists;
+    if ( isTypeResponse(exists)) return exists;
 
     try {
       await this.roleRepository
@@ -200,7 +200,7 @@ private async toggleDelete(id: string, deleted: boolean, successMsg: string, err
   
   async remove(id: string) {
     const isActive = await this.isRoleActive(id);
-    if (isErrorResponse(isActive)) return isActive; 
+    if ( isTypeResponse(isActive)) return isActive; 
     return this.toggleDelete(id, true, 'El rol ha sido eliminado','no se pudo eliminar el rol')
   }
 
@@ -212,7 +212,7 @@ private async toggleDelete(id: string, deleted: boolean, successMsg: string, err
    */
   async restore(id: string) {
     const isDeleted = await this.isRoleDeleted(id)
-    if (isErrorResponse(isDeleted)) return isDeleted;
+    if ( isTypeResponse(isDeleted)) return isDeleted;
     return this.toggleDelete(id, false, 'El rol ha sido restaurado','no se pudo restaurar el rol')
   }
 }

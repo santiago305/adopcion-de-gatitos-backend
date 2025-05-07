@@ -83,7 +83,7 @@ export class UsersController {
   @Get('actives')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  async findAllAvtives(
+  async findAllActives(
     @Query('page') page: string,
     @Query('role') role: string,
     @Query('sortBy') sortBy: string,

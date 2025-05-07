@@ -4,9 +4,9 @@ import {
   Post,
   Patch,
   Delete,
-  Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -38,8 +38,19 @@ export class ClientsController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  findAll() {
-    return this.clientsService.findAll();
+  findAll(
+    @Query('page') page: string,
+    @Query('gender') gender: string,
+    @Query('sortBy') sortBy: string,
+    @Query('order') order: 'ASC' | 'DESC'
+  ) {
+    const pageNumber = parseInt(page) || 1;
+    return this.clientsService.findAll({
+      page: pageNumber,
+      filters: { gender },
+      sortBy: sortBy || 'user.createdAt',
+      order: order || 'DESC',
+    });
   }
 
   /**
@@ -52,8 +63,19 @@ export class ClientsController {
   @Get('actives')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  findActives() {
-    return this.clientsService.findActives();
+  findActives(
+    @Query('page') page: string,
+    @Query('gender') gender: string,
+    @Query('sortBy') sortBy: string,
+    @Query('order') order: 'ASC' | 'DESC'
+  ) {
+    const pageNumber = parseInt(page) || 1;
+    return this.clientsService.findActives({
+      page: pageNumber,
+      filters: { gender },
+      sortBy: sortBy || 'user.createdAt',
+      order: order || 'DESC',
+    });
   }
 
   /**
@@ -67,8 +89,8 @@ export class ClientsController {
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  findOne(@Param('id') id: string) {
-    return this.clientsService.findOne(id);
+  findOne(@User() user: any) {
+    return this.clientsService.findOne(user);
   }
 
   /**
@@ -81,9 +103,8 @@ export class ClientsController {
    */
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  remove(@Param('id') id: string, @User() userId: any) {
-    return this.clientsService.remove(id, userId);
+  remove(@User() user: any) {
+    return this.clientsService.remove(user);
   }
 
   /**
@@ -97,8 +118,8 @@ export class ClientsController {
   @Delete(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  restore(@Param('id') id: string, ) {
-    return this.clientsService.restore(id, userId);
+  restore(@User() user: any) {
+    return this.clientsService.restore(user);
   }
 
   // Rutas de usuarios
@@ -134,21 +155,6 @@ export class ClientsController {
     return this.clientsService.findOwnClient(user.userId);
   }
 
-  /**
-   * Elimina el cliente asociado al usuario autenticado.
-   * 
-   * Solo los usuarios con rol de 'USER' pueden acceder a esta ruta.
-   * 
-   * @param {any} user - Información del usuario autenticado.
-   * @returns {Promise<Client>} El cliente eliminado.
-   */
-  @Patch('me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.USER)
-  removeSelf(@User() user: any) {
-    return this.clientsService.removeSelf(user.userId);
-  }
-
   // Rutas para todos los roles
 
   /**
@@ -166,10 +172,9 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR, RoleType.USER)
   update(
-    @Param('id') id: string,
     @Body() dto: UpdateClientDto,
     @User() user: any,
   ) {
-    return this.clientsService.update(+id, dto, user);
+    return this.clientsService.update(user, dto);
   }
 }

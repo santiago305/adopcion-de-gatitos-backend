@@ -3,8 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import * as argon2 from 'argon2';
 import { UsersService } from '../users/users.service';
 import { LoginAuthDto } from './dto';
-import { mapUser } from 'src/users/utils/user.mapper';
 import { envs } from 'src/config/envs';
+import { CreateUserDto } from 'src/users/dto/create-user.dto';
+import { RoleType } from 'src/common/constants';
+import { invalidResponse } from 'src/common/utils/response';
+import { ErrorResponse, isTypeResponse } from 'src/common/guards/guard';
 
 /**
  * Servicio responsable de la lógica de autenticación.
@@ -27,20 +30,21 @@ export class AuthService {
    * @throws UnauthorizedException si las credenciales son inválidas o el usuario está eliminado.
    */
   async validateUser(email: string, password: string) {
-    const user = await this.usersService.findByEmail(email);
-
-    if (!user) {
-      await argon2.verify(argon2.hash('dummy'), password);
-      throw new UnauthorizedException('Credenciales inválidas');
+    const result = await this.usersService.findByEmail(email);
+  
+    if (isTypeResponse(result)) {
+      throw new UnauthorizedException(result.message);
     }
 
+    const user = result.data;
+  
     const isPasswordValid = await argon2.verify(user.password, password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Credenciales inválidas');
-    }
+
+    if (!isPasswordValid) return invalidResponse('Credenciales invalidas');
 
     return user;
   }
+  
 
   /**
    * Inicia sesión con email y contraseña. Retorna tokens JWT y datos del usuario.
@@ -53,8 +57,6 @@ export class AuthService {
 
     const payload = {
       sub: user.id,
-      email: user.email,
-      role: user.role?.description,
     };
 
     const access_token = this.jwtService.sign(payload, {
@@ -70,8 +72,15 @@ export class AuthService {
     return {
       access_token,
       refresh_token,
-      user: mapUser(user),
     };
+  }
+
+  async register(dto: CreateUserDto):Promise<| { access_token: string; refresh_token: string }
+  | ErrorResponse>{
+    const userRegister = await this.usersService.create(dto, RoleType.USER)
+    if(isTypeResponse(userRegister))return userRegister;
+    
+    return  await this.login(dto)
   }
 
   /**
@@ -83,8 +92,6 @@ export class AuthService {
   async refreshFromPayload(user: any) {
     const payload = {
       sub: user.userId,
-      email: user.email,
-      role: user.role,
     };
 
     const newAccessToken = this.jwtService.sign(payload, {

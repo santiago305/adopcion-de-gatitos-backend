@@ -8,8 +8,8 @@ import * as argon2 from 'argon2';
 import { RoleType } from 'src/common/constants';
 import { errorResponse, successResponse } from 'src/common/utils/response';
 import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
-import { isErrorResponse } from 'src/common/guards/guard';
 import { RolesService } from '../roles/roles.service';
+import { isTypeResponse } from 'src/common/guards/guard';
 
 @Injectable()
 export class UsersService {
@@ -37,7 +37,7 @@ export class UsersService {
         'user.id',
         'user.name',
         'user.email',
-        'role.description',
+        'role.description As rol',
         'user.deleted',
         'user.createdAt',
       ])
@@ -52,7 +52,7 @@ export class UsersService {
     }
   
     if (filters?.role) {
-      query.andWhere('role.description = :role', { role: filters.role });
+      query.andWhere('rol = :role', { role: filters.role });
     }
   
     query.orderBy(sortBy, order);
@@ -82,6 +82,14 @@ export class UsersService {
     const user = await this.userRepository
     .createQueryBuilder('user')
     .leftJoin('user.role', 'role')
+    .select([
+      'user.id',
+      'user.name',
+      'user.email',
+      'role.description AS rol',
+      'user.deleted',
+      'user.createdAt',
+    ])
     .where('user.deleted = :deleted', { deleted: false })
     .andWhere('user.id = :id', { id })
     .getOne();
@@ -130,8 +138,10 @@ export class UsersService {
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .select([
+        'user.id',
         'user.email',
-        'user.password'
+        'user.password',
+        'role.description As rol'
       ])
       .where('user.email = :email', { email })
       .andWhere('user.deleted = false')
@@ -148,11 +158,11 @@ export class UsersService {
 
   async create(dto: CreateUserDto, requesterRole: string):Promise<SuccessResponse | ErrorResponse> {
     const existing = await this.isUserEmail(dto.email);
-    if (isErrorResponse(existing))return existing;
+    if (isTypeResponse(existing))return existing;
   
     if (dto.roleId) {
       const roleExists = await this.rolesService.isRoleActive(dto.roleId);
-      if (isErrorResponse(roleExists)) return roleExists;
+      if ( isTypeResponse(roleExists)) return roleExists;
     }
 
     const hashedPassword = await argon2.hash(dto.password, {
@@ -165,7 +175,7 @@ export class UsersService {
     const targetRoleType = isAdmin ? dto.roleId ?? RoleType.USER : RoleType.USER;
   
     const role = await this.rolesService.findOneDescription(targetRoleType)
-    if (isErrorResponse(role)) return role;
+    if ( isTypeResponse(role)) return role;
   
     try {
       await this.userRepository
@@ -189,17 +199,17 @@ export class UsersService {
   
   async update(id: string, dto: UpdateUserDto):Promise <SuccessResponse | ErrorResponse> {
     const user = await this.findOne(id)
-    if (isErrorResponse(user)) return user;
+    if ( isTypeResponse(user)) return user;
 
     const updateData: Partial<User> = {};
     if (dto.email) {
       const existing = await this.isUserEmail(dto.email);
-      if(isErrorResponse(existing)) return existing;
+      if( isTypeResponse(existing)) return existing;
       updateData.email = dto.email;
     }
     if (dto.roleId) {
       const roleExists = await this.rolesService.isRoleActive(dto.roleId);
-      if (isErrorResponse(roleExists)) return roleExists;
+      if ( isTypeResponse(roleExists)) return roleExists;
     }
 
     if (dto.name) updateData.name = dto.name;
@@ -246,13 +256,13 @@ export class UsersService {
     }
   async remove(id: string) {
     const isActive = await this.isUserActive(id);
-    if (isErrorResponse(isActive)) return isActive; 
+    if ( isTypeResponse(isActive)) return isActive; 
     return this.toggleDelete(id, true, 'El usuario ha sido eliminado','no se pudo eliminar al usuario')
   }
 
   async restore(id: string ) {
     const isDeleted = await this.isUserDeleted(id)
-    if (isErrorResponse(isDeleted)) return isDeleted; 
+    if ( isTypeResponse(isDeleted)) return isDeleted; 
     return this.toggleDelete(id, false, 'El usuario ha sido restaurado','No se pudo restaurar al usuario')
   }
 }
