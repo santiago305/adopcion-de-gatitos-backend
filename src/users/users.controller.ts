@@ -7,6 +7,7 @@ import {
   Patch,
   Delete,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
@@ -63,145 +64,77 @@ export class UsersController {
   @Get()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  findAll() {
-    return this.usersService.findAll();
-  }
+  async findAll(
+    @Query('page') page: string,
+    @Query('role') role: string,
+    @Query('sortBy') sortBy: string,
+    @Query('order') order: 'ASC' | 'DESC'
+  ) {
+    const pageNumber = parseInt(page) || 1;
 
-  /**
-   * Obtiene todos los usuarios marcados como activos.
-   * Solo accesible por administradores.
-   * 
-   * @returns Lista de usuarios activos.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws ForbiddenException Si el usuario no tiene el rol adecuado.
-   * 
-   * @example
-   * // Obtiene todos los usuarios activos
-   * usersController.findActives();
-   */
+    return this.usersService.findAll({
+      page: pageNumber,
+      filters: { role },
+      sortBy: sortBy || 'user.createdAt',
+      order: order || 'DESC',
+    });
+  }
+  
   @Get('actives')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
-  findActives() {
-    return this.usersService.findActives();
+  async findAllAvtives(
+    @Query('page') page: string,
+    @Query('role') role: string,
+    @Query('sortBy') sortBy: string,
+    @Query('order') order: 'ASC' | 'DESC'
+  ) {
+    const pageNumber = parseInt(page) || 1;
+
+    return this.usersService.findAll({
+      page: pageNumber,
+      filters: { role },
+      sortBy: sortBy || 'user.createdAt',
+      order: order || 'DESC',
+    });
   }
 
-  /**
-   * Obtiene el perfil del usuario autenticado.
-   * 
-   * @param user Información del usuario autenticado.
-   * @returns El usuario autenticado.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * 
-   * @example
-   * // Obtiene el perfil del usuario autenticado
-   * usersController.getProfile(user);
-   */
   @Get('me')
   @UseGuards(JwtAuthGuard)
   getProfile(@User() user: any) {
-    return this.usersService.findOne(user.userId);
+    return this.usersService.findOwnUser(user.userId);
   }
 
-  /**
-   * Obtiene un usuario por su ID.
-   * Solo accesible por administradores.
-   * 
-   * @param id El ID del usuario a obtener.
-   * @returns El usuario con el ID especificado.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws ForbiddenException Si el usuario no tiene el rol adecuado.
-   * @throws NotFoundException Si el usuario no existe.
-   * 
-   * @example
-   * // Obtiene un usuario con ID 1
-   * usersController.findOne('1');
-   */
   @Get(':id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
   findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+    return this.usersService.findOne(id);
   }
 
-  /**
-   * Busca un usuario por su correo electrónico.
-   * 
-   * @param email El correo electrónico del usuario.
-   * @returns El usuario correspondiente al correo electrónico.
-   * 
-   * @throws NotFoundException Si el usuario no existe.
-   * 
-   * @example
-   * // Busca un usuario por correo electrónico
-   * usersController.findByEmail('test@example.com');
-   */
   @Get('email/:email')
   findByEmail(@Param('email') email: string) {
     return this.usersService.findByEmail(email);
   }
 
-  /**
-   * Actualiza un usuario existente.
-   * 
-   * @param id El ID del usuario a actualizar.
-   * @param dto Los datos a actualizar en el usuario.
-   * @returns El usuario actualizado.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws NotFoundException Si el usuario no existe.
-   * 
-   * @example
-   * // Actualiza el usuario con ID 1
-   * usersController.update('1', updateUserDto);
-   */
   @Patch(':id')
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-    return this.usersService.update(+id, dto);
+    return this.usersService.update(id, dto);
   }
 
-  /**
-   * Elimina lógicamente un usuario por su ID.
-   * 
-   * @param id El ID del usuario a eliminar.
-   * @returns El usuario marcado como eliminado.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws NotFoundException Si el usuario no existe.
-   * 
-   * @example
-   * // Elimina lógicamente el usuario con ID 1
-   * usersController.remove('1');
-   */
+
   @Delete(':id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
-    return this.usersService.remove(+id);
+    return this.usersService.remove(id);
   }
 
-  /**
-   * Restaura un usuario previamente eliminado.
-   * Solo accesible por administradores.
-   * 
-   * @param id El ID del usuario a restaurar.
-   * @returns El usuario restaurado.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws ForbiddenException Si el usuario no tiene el rol adecuado.
-   * @throws NotFoundException Si el usuario no existe.
-   * 
-   * @example
-   * // Restaura el usuario con ID 1
-   * usersController.restore('1');
-   */
+
   @Patch(':id/restore')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
   restore(@Param('id') id: string) {
-    return this.usersService.restore(+id);
+    return this.usersService.restore(id);
   }
 }

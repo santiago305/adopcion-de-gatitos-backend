@@ -19,7 +19,7 @@ export class User {
   /**
    * Identificador único del usuario.
    */
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn('uuid')
   id: string
 
   /**

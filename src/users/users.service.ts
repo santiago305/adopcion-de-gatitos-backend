@@ -20,7 +20,16 @@ export class UsersService {
     private readonly rolesService: RolesService,
   ) {}
 
-  private async getUsers(whereClause?: string) {
+  private async getUsers(
+    whereClause?: string,
+    page: number = 1,
+    filters?: { role?: string },
+    sortBy: string = 'user.createdAt',
+    order: 'ASC' | 'DESC' = 'DESC'
+  ) {
+    const pageSize = 20;
+    const offset = (page - 1) * pageSize;
+  
     const query = this.userRepository
       .createQueryBuilder('user')
       .leftJoin('user.role', 'role')
@@ -30,19 +39,43 @@ export class UsersService {
         'user.email',
         'role.description',
         'user.deleted',
-      ]);
-    
-    if (whereClause) query.where(whereClause);
+        'user.createdAt',
+      ])
+      .skip(offset)
+      .take(pageSize);
+  
+    // Aplica condiciones en orden seguro
+    if (whereClause) {
+      query.where(whereClause);
+    } else {
+      query.where('1=1'); // para permitir encadenar andWhere incluso si no hay filtro base
+    }
+  
+    if (filters?.role) {
+      query.andWhere('role.description = :role', { role: filters.role });
+    }
+  
+    query.orderBy(sortBy, order);
   
     return query.getRawMany();
   }
   
-  async findAll() {
-    return await this.getUsers()
+  async findAll(params: {
+    page?: number,
+    filters?: { role?: string },
+    sortBy?: string,
+    order?: 'ASC' | 'DESC'
+  }) {
+    return this.getUsers(undefined, params.page, params.filters, params.sortBy, params.order);
   }
 
-  async findActives() {
-    return await this.getUsers('role.deleted = false')
+  async findActives(params: {
+    page?: number,
+    filters?: { role?: string },
+    sortBy?: string,
+    order?: 'ASC' | 'DESC'
+  }){
+    return await this.getUsers('role.deleted = false', params.page, params.filters, params.sortBy, params.order)
   }
 
   async findOne(id: string):Promise<SuccessResponse | ErrorResponse> {
@@ -115,9 +148,13 @@ export class UsersService {
 
   async create(dto: CreateUserDto, requesterRole: string):Promise<SuccessResponse | ErrorResponse> {
     const existing = await this.isUserEmail(dto.email);
-  
     if (isErrorResponse(existing))return existing;
   
+    if (dto.roleId) {
+      const roleExists = await this.rolesService.isRoleActive(dto.roleId);
+      if (isErrorResponse(roleExists)) return roleExists;
+    }
+
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });
@@ -160,9 +197,12 @@ export class UsersService {
       if(isErrorResponse(existing)) return existing;
       updateData.email = dto.email;
     }
+    if (dto.roleId) {
+      const roleExists = await this.rolesService.isRoleActive(dto.roleId);
+      if (isErrorResponse(roleExists)) return roleExists;
+    }
 
     if (dto.name) updateData.name = dto.name;
-    if (dto.email) updateData.email = dto.email;
     if (dto.password) {
       updateData.password = await argon2.hash(dto.password, {
         type: argon2.argon2id,
@@ -188,7 +228,6 @@ export class UsersService {
     }
   }
 
-  
   private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
       try {
         await this.userRepository
@@ -211,12 +250,6 @@ export class UsersService {
     return this.toggleDelete(id, true, 'El usuario ha sido eliminado','no se pudo eliminar al usuario')
   }
 
-  /**
-   * Restaura un usuario previamente eliminado.
-   * @param id ID del usuario
-   * @throws NotFoundException si el usuario no existe
-   * @returns Usuario restaurado
-   */
   async restore(id: string ) {
     const isDeleted = await this.isUserDeleted(id)
     if (isErrorResponse(isDeleted)) return isDeleted; 
