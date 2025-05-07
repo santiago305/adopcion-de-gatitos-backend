@@ -3,6 +3,7 @@ import { APP_FILTER, APP_INTERCEPTOR } from '@nestjs/core';
 import { HttpErrorFilter } from './filters/http-exception.filter';
 import { LoggingInterceptor } from './interceptors/logging.interceptor';
 
+
 /**
  * Módulo común que configura proveedores globales como filtros e interceptores.
  *

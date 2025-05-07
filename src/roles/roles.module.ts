@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { RolesController } from './roles.controller';
 import { RolesService } from './roles.service';
 import { Role } from './entities/role.entity';
+import { UsersModule } from 'src/users/users.module';
 
 /**
  * Módulo que gestiona todo lo relacionado con los roles de usuario.
@@ -25,7 +26,9 @@ import { Role } from './entities/role.entity';
  * ```
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([Role])],
+  imports: [
+    forwardRef(() => UsersModule),
+    TypeOrmModule.forFeature([Role])],
   controllers: [RolesController],
   providers: [RolesService],
   exports: [RolesService], // Permite usar el servicio en otros módulos
