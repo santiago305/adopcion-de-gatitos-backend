@@ -60,4 +60,14 @@ export class AuthService {
 
     return { access_token: newAccessToken };
   }
+
+  async validateToken(token: string) {
+    try {
+      const payload = this.jwtService.verify(token); // verifica firma y expiración
+      return { valid: true, payload };
+    } catch (err) {
+      console.error('[AuthService][validateToken] error al validar ',err)
+      return { valid: false };
+    }
+  }
 }

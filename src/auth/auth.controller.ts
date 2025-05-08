@@ -95,4 +95,9 @@ export class AuthController {
   refresh(@UserDecorator() user: { userId: string }) {
     return this.authService.refreshFromPayload(user);
   }
+  @UseGuards(JwtAuthGuard)
+  @Get('validate-token')
+  validateToken(@UserDecorator() user: { userId: string }) {
+    return { valid: true, user};
+  }
 }
