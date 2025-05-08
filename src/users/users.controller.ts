@@ -5,7 +5,6 @@ import {
   Body,
   Param,
   Patch,
-  Delete,
   UseGuards,
   Query,
 } from '@nestjs/common';
@@ -29,41 +28,20 @@ import { User as CurrentUser, User } from 'src/common/decorators/user.decorator'
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-  /**
-   * Crea un nuevo usuario.
-   * 
-   * @param dto Los datos necesarios para crear el usuario. (Creación de usuario)
-   * @param currentUser Información del usuario autenticado (opcional, se usa para roles).
-   * @returns El usuario recién creado.
-   * 
-   * @example
-   * // Crea un nuevo usuario
-   * usersController.create(createUserDto);
-   */
-  @Post()
-  create(
-    @Body() dto: CreateUserDto,
-    @CurrentUser() currentUser?: any 
-  ) {
-    return this.usersService.create(dto, currentUser?.role);
-  }
 
-  /**
-   * Obtiene todos los usuarios activos (no eliminados).
-   * Solo accesible por administradores.
-   * 
-   * @returns Lista de usuarios activos.
-   * 
-   * @throws UnauthorizedException Si el usuario no está autenticado.
-   * @throws ForbiddenException Si el usuario no tiene el rol adecuado.
-   * 
-   * @example
-   * // Obtiene todos los usuarios activos
-   * usersController.findAll();
-   */
-  @Get()
+  @Post()
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
+  create(
+    @Body() dto: CreateUserDto,
+    @CurrentUser() user: { role: RoleType }
+  ) {
+    return this.usersService.create(dto, user.role);
+  }
+
+  @Get()
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   async findAll(
     @Query('page') page: string,
     @Query('role') role: string,
@@ -82,8 +60,8 @@ export class UsersController {
   
   @Get('actives')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
-  async findAllActives(
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+  async findActives(
     @Query('page') page: string,
     @Query('role') role: string,
     @Query('sortBy') sortBy: string,
@@ -91,12 +69,18 @@ export class UsersController {
   ) {
     const pageNumber = parseInt(page) || 1;
 
-    return this.usersService.findAll({
+    return this.usersService.findActives({
       page: pageNumber,
       filters: { role },
       sortBy: sortBy || 'user.createdAt',
       order: order || 'DESC',
     });
+  }
+  @Get(':id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+  findOne(@Param('id') id: string) {
+    return this.usersService.findOne(id);
   }
 
   @Get('me')
@@ -105,33 +89,29 @@ export class UsersController {
     return this.usersService.findOwnUser(user.userId);
   }
 
-  @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(id);
-  }
 
   @Get('email/:email')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   findByEmail(@Param('email') email: string) {
     return this.usersService.findByEmail(email);
   }
 
-  @Patch(':id')
+  @Patch('update/:id')
   @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.usersService.update(id, dto);
   }
 
 
-  @Delete(':id')
+  @Patch('delete/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.usersService.remove(id);
   }
 
 
-  @Patch(':id/restore')
+  @Patch('restore/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
   restore(@Param('id') id: string) {

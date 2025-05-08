@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './entities/user.entity';
@@ -7,9 +7,7 @@ import { UpdateUserDto } from './dto/update-user.dto';
 import * as argon2 from 'argon2';
 import { RoleType } from 'src/common/constants';
 import { errorResponse, successResponse } from 'src/common/utils/response';
-import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
 import { RolesService } from '../roles/roles.service';
-import { isTypeResponse } from 'src/common/guards/guard';
 
 @Injectable()
 export class UsersService {
@@ -78,7 +76,7 @@ export class UsersService {
     return await this.getUsers('role.deleted = false', params.page, params.filters, params.sortBy, params.order)
   }
 
-  async findOne(id: string):Promise<SuccessResponse | ErrorResponse> {
+  async findOne(id: string) {
     const user = await this.userRepository
     .createQueryBuilder('user')
     .leftJoin('user.role', 'role')
@@ -94,32 +92,23 @@ export class UsersService {
     .andWhere('user.id = :id', { id })
     .getOne();
     
-    if(!user) return errorResponse('No hemos podido encotrar el usuario');
+    if(!user) throw new UnauthorizedException('No hemos podido encotrar el usuario');
 
     return successResponse('usuarios encontrado', user)
   }
   private async checkUserStatus(
-    idOrEmail: string, 
+    id: string, 
     deleted: boolean = false, 
     errorMsg: string, 
-    useEmail:boolean = false,
-    checkDelete: boolean = true
     ){
     const query = this.userRepository
     .createQueryBuilder('user')
+    .where('user.deleted = :deleted', { deleted })
+    .andWhere('user.id = :id', { id: id })
 
-    if(checkDelete){
-      query.andWhere('user.deleted = :deleted', { deleted })
-    }
-    if (useEmail) {
-      query.andWhere('user.email = :email', { email: idOrEmail });
-    } else {
-      query.andWhere('user.id = :id', { id: idOrEmail });
-    }
-  
     const exists = await query.getExists();
 
-    if (!exists) return errorResponse(errorMsg)
+    if (!exists) throw new UnauthorizedException(errorMsg)
 
     return true
   }
@@ -131,16 +120,25 @@ export class UsersService {
   }
 
   async isUserEmail(email: string) {
-    return await this.checkUserStatus(email, false, 'Este usuario ya existe', true, false)
+    const exists = await this.userRepository
+      .createQueryBuilder('user')
+      .where('user.email = :email', { email })
+      .getExists();
+  
+    if (exists) {
+      throw new UnauthorizedException('Este email ya está registrado');
+    }
+  
+    return true;
   }
-  async findByEmail(email: string): Promise<SuccessResponse | ErrorResponse> {
+
+  async findByEmail(email: string) {
     const user = await this.userRepository
       .createQueryBuilder('user')
       .leftJoinAndSelect('user.role', 'role')
       .select([
         'user.id',
         'user.email',
-        'user.password',
         'role.description As rol'
       ])
       .where('user.email = :email', { email })
@@ -151,31 +149,30 @@ export class UsersService {
 
     return successResponse('Usuario encontrado', user);
   }
-  async findOwnUser(userId: string): Promise<SuccessResponse | ErrorResponse> {
+  async findOwnUser(userId: string){
     const user = await this.findOne(userId);
     return user;
   }
 
-  async create(dto: CreateUserDto, requesterRole: string):Promise<SuccessResponse | ErrorResponse> {
-    const existing = await this.isUserEmail(dto.email);
-    if (isTypeResponse(existing))return existing;
-  
+  async create(dto: CreateUserDto, requesterRole: string) {
+
+    await this.isUserEmail(dto.email);
+    
     if (dto.roleId) {
-      const roleExists = await this.rolesService.isRoleActive(dto.roleId);
-      if ( isTypeResponse(roleExists)) return roleExists;
+      await this.rolesService.isRoleActive(dto.roleId);
     }
 
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });
 
-    
     const isAdmin = requesterRole === RoleType.ADMIN;
 
     const targetRoleType = isAdmin ? dto.roleId ?? RoleType.USER : RoleType.USER;
   
-    const role = await this.rolesService.findOneDescription(targetRoleType)
-    if ( isTypeResponse(role)) return role;
+    const roleResult = await this.rolesService.findOneDescription(targetRoleType);
+
+    const roleId = roleResult.data.id || RoleType.USER ;
   
     try {
       await this.userRepository
@@ -186,30 +183,27 @@ export class UsersService {
           name: dto.name,
           email: dto.email,
           password: hashedPassword,
-          role: { id: role.data.id }
+          role: { id: roleId }
         })
         .execute();
     
       return successResponse('Usuario creado correctamente') 
     } catch (error) {
       console.error('[UsersService][create] error al crear un usuario: ',error);
-      return errorResponse('Se a producido un error al crear al usuario')  
+      throw new UnauthorizedException('Se ha producido un error al crear al usuario')  
     }
   }
   
-  async update(id: string, dto: UpdateUserDto):Promise <SuccessResponse | ErrorResponse> {
-    const user = await this.findOne(id)
-    if ( isTypeResponse(user)) return user;
+  async update(id: string, dto: UpdateUserDto) {
+    await this.findOne(id)
 
     const updateData: Partial<User> = {};
     if (dto.email) {
-      const existing = await this.isUserEmail(dto.email);
-      if( isTypeResponse(existing)) return existing;
+      await this.isUserEmail(dto.email);
       updateData.email = dto.email;
     }
     if (dto.roleId) {
-      const roleExists = await this.rolesService.isRoleActive(dto.roleId);
-      if ( isTypeResponse(roleExists)) return roleExists;
+      await this.rolesService.isRoleActive(dto.roleId);
     }
 
     if (dto.name) updateData.name = dto.name;
@@ -233,12 +227,16 @@ export class UsersService {
       return successResponse('Modificacion terminada', updateUser)
     } catch (error) {
       console.error('[UserService][update] error al editar el usuario: ', error);
-      return errorResponse('No pudimos modificar el usuario')
+      throw new UnauthorizedException('No pudimos modificar el usuario')
       
     }
   }
 
-  private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
+  private async toggleDelete(
+    id: string, 
+    deleted: boolean, 
+    successMsg: string, 
+    errorMsg: string) {
       try {
         await this.userRepository
           .createQueryBuilder()
@@ -250,19 +248,27 @@ export class UsersService {
         return successResponse(successMsg);
       } catch (error) {
         console.error('[UserService][toggleDelete] error de la accion', error);
-        
-        return errorResponse(errorMsg);
+        throw new UnauthorizedException(errorMsg);
       }
     }
   async remove(id: string) {
-    const isActive = await this.isUserActive(id);
-    if ( isTypeResponse(isActive)) return isActive; 
+    await this.isUserActive(id);
     return this.toggleDelete(id, true, 'El usuario ha sido eliminado','no se pudo eliminar al usuario')
   }
 
   async restore(id: string ) {
-    const isDeleted = await this.isUserDeleted(id)
-    if ( isTypeResponse(isDeleted)) return isDeleted; 
+    await this.isUserDeleted(id)
     return this.toggleDelete(id, false, 'El usuario ha sido restaurado','No se pudo restaurar al usuario')
+  }
+
+  async findWithPasswordByEmail(email: string): Promise<{ id: string; password: string } | null> {
+    const user = await this.userRepository
+      .createQueryBuilder('user')
+      .select(['user.id', 'user.password'])
+      .where('user.email = :email', { email })
+      .andWhere('user.deleted = false')
+      .getOne();
+  
+    return user || null;
   }
 }

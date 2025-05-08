@@ -1,12 +1,11 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { CreateRoleDto } from './dto/create-role.dto';
 import { UpdateRoleDto } from './dto/update-role.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
-import { errorResponse, successResponse } from 'src/common/utils/response';
-import {  isTypeResponse } from 'src/common/guards/guard';
-import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
+import { successResponse } from 'src/common/utils/response';
+import { isTypeResponse } from 'src/common/guards/guard';
 
 /**
  * Servicio encargado de la gestión de roles en el sistema.
@@ -20,15 +19,10 @@ export class RolesService {
     private readonly roleRepository: Repository<Role>,
   ) {}
 
-  /**
-   * Crea un nuevo rol en la base de datos.
-   * 
-   * @param dto - Datos necesarios para crear un nuevo rol.
-   * @returns El rol recién creado y guardado.
-   */
-  async create(dto: CreateRoleDto):Promise<SuccessResponse | ErrorResponse> {
-    const exists = await this.isRoleExisting(dto.description)
-    if ( isTypeResponse(exists)) return exists;
+
+  async create(dto: CreateRoleDto) {
+    await this.isRoleExisting(dto.description)
+
     try {
      await this.roleRepository
     .createQueryBuilder()
@@ -41,20 +35,11 @@ export class RolesService {
     return successResponse('Rol creado exitosamente')
     
     } catch (error) {
-        console.error('[RolesService][create] error al crear el rol: ', error)
-        return errorResponse('No hemos podido crear el rol')
+       console.error('[RolesService][create] error al crear el rol: ', error)
+       throw new UnauthorizedException('No hemos podido crear el rol')
     }
-
-  
   }
 
-  /**
-   * Obtiene todos los roles registrados.
-   * 
-   * @returns Lista completa de roles.
-   * @throws Error si no se encuentran roles.
-   * pnpm run seed guarda datos predeterminados
-   */
 
   private async getRoles(whereClause?: string) {
     const query = this.roleRepository
@@ -73,23 +58,12 @@ export class RolesService {
       return await this.getRoles()
   }
     
-  /**
-   * Obtiene todos los roles que no están marcados como eliminados.
-   *
-   * @returns Lista de roles activos junto con sus relaciones (por ejemplo, usuarios).
-   */
   async findActives() {
     return await this.getRoles('role.deleted = false')
   }
 
-  /**
-   * Busca un rol por su ID.
-   *
-   * @param id - Identificador único del rol.
-   * @throws Error si el rol no existe.
-   * @returns El rol encontrado.
-   */
-  async findOne(id: string):Promise<SuccessResponse | ErrorResponse> {
+
+  async findOne(id: string) {
 
     const role = await this.roleRepository
     .createQueryBuilder('role')
@@ -102,23 +76,21 @@ export class RolesService {
     .andWhere('role.id = :id', { id })
     .getOne();
     
-    if (!role) return errorResponse('rol no encontrado');
+    if (!role)throw new UnauthorizedException('rol no encontrado');
 
     return successResponse('Hemos encontrado el rol', role)
   }
 
-  async findOneDescription(description: string):Promise<SuccessResponse|ErrorResponse>{
-
-    const role = this.roleRepository
-    .createQueryBuilder('role')
-    .select([
-      'role.id'
-    ])
-    .where('role.description = :description', { description })
-    .getOne();
-
-    if (!role) return errorResponse('Ese rol no existe');
-    return successResponse('El rol ha sido encontrado', role)
+  async findOneDescription(description: string) {
+    const role = await this.roleRepository
+      .createQueryBuilder('role')
+      .select(['role.id'])
+      .where('role.description = :description', { description })
+      .getOne();
+  
+    if (!role) throw new UnauthorizedException('El rol no existe');
+  
+    return successResponse('El rol ha sido encontrado', role);
   }
 
   private async checkRoleStatus(id: string, deleted: boolean, errorMsg: string){
@@ -128,7 +100,7 @@ export class RolesService {
     .andWhere('role.id = :id', { id })
     .getExists();
 
-    if (!role) return errorResponse(errorMsg)
+    if (!role) throw new UnauthorizedException(errorMsg)
 
     return true
   }
@@ -145,9 +117,11 @@ export class RolesService {
     .createQueryBuilder('role')
     .where('role.description = :description', { description })
     .andWhere('role.deleted = false')
-    .getOne();
+    .getExists()
 
-    return isRoleExisting ? errorResponse('Ese rol ya existe') : true;
+    if(!isRoleExisting)throw new UnauthorizedException('No hay registros de este rol');
+
+    return true;
   }
   /**
    * Actualiza un rol existente por ID.
@@ -156,9 +130,8 @@ export class RolesService {
    * @param dto - Datos actualizados del rol.
    * @returns El rol actualizado.
    */
-  async update(id: string, dto: UpdateRoleDto):Promise<SuccessResponse | ErrorResponse> {
-    const exists = await this.isRoleActive(id);
-    if ( isTypeResponse(exists)) return exists;
+  async update(id: string, dto: UpdateRoleDto) {
+    await this.isRoleActive(id);
 
     try {
       await this.roleRepository
@@ -174,14 +147,14 @@ export class RolesService {
         
     } catch (error) {
       console.error('[RolesService][update] error al modificar el rol: ',error)
-      return errorResponse('Hubo un problemita al modificar el rol')
+      throw new UnauthorizedException('Hubo un problemita al modificar el rol')
     }
   
     // Retorna el rol actualizado
   }
   
 
-private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
+private async toggleDelete(id: string, deleted: boolean, successMsg: string, errorMsg: string) {
   try {
     await this.roleRepository
       .createQueryBuilder()
@@ -194,7 +167,7 @@ private async toggleDelete(id: string, deleted: boolean, successMsg: string, err
   } catch (error) {
     console.error('[RolesService][toggleDelete] error de la accion', error);
     
-    return errorResponse(errorMsg);
+   throw new UnauthorizedException(errorMsg);
   }
 }
   

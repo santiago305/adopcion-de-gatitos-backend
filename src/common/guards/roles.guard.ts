@@ -36,11 +36,8 @@ export class RolesGuard implements CanActivate {
     }
 
     const userRole = result.data.role?.description;
-    if (!allowedRoles.includes(userRole)) {
-      throw new ForbiddenException({
-        message: 'Acceso denegado: rol insuficiente',
-        type: 'error',
-      });
+    if (!Object.values(RoleType).includes(userRole as RoleType)) {
+      throw new ForbiddenException('Rol no válido');
     }
 
     return true;

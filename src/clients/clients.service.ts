@@ -1,5 +1,6 @@
 import { 
   Injectable,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
@@ -27,13 +28,10 @@ export class ClientsService {
     private readonly userService: UsersService,
   ) {}
 
-  async create(dto: CreateClientDto, user: { userId: string }):Promise <SuccessResponse | ErrorResponse> {
-      const existing = await this.userService.isUserActive(user.userId)
-      if (isTypeResponse(existing)) return existing;
-    
+  async create(dto: CreateClientDto, user: { userId: string }) {
+      await this.userService.isUserActive(user.userId)
 
-      const userEntity = await this.userService.findOwnUser(user.userId);
-      if (isTypeResponse(userEntity)) return userEntity;
+      await this.userService.findOwnUser(user.userId);
 
       try {
         await this.clientRepository
@@ -55,7 +53,7 @@ export class ClientsService {
 
       } catch (error) {
         console.error('[ClientsService][create] error al crear un cliente: ', error);
-        return errorResponse('Error inesperado al crear el cliente')
+        throw new UnauthorizedException('Error inesperado al crear el cliente')
         
       }
 
