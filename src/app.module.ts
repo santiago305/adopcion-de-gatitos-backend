@@ -5,7 +5,6 @@ import { MiddlewareConsumer,
 import { AuthModule } from './auth/auth.module';
 import { RolesModule } from './roles/roles.module';
 import { UsersModule } from './users/users.module';
-import { TokenMiddleware } from './common/middleware/token.middleware';
 import { ClientsModule } from './clients/clients.module';
 import { AppConfigModule } from './config/config.module';
 import { CommonModule } from './common/common.module';
@@ -26,7 +25,7 @@ import { DatabaseModule } from './database/database.module';
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
-      .apply(TokenMiddleware)
+      .apply()
       .forRoutes({ path: '*', method: RequestMethod.ALL });
   }
 }

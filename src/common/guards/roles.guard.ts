@@ -8,7 +8,7 @@ import {
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { UsersService } from 'src/users/users.service';
-import { RoleType } from '../constants';
+import { RoleType, status } from '../constants';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
@@ -31,11 +31,11 @@ export class RolesGuard implements CanActivate {
 
     
     const result = await this.usersService.findOne(userId);
-    if (result.type === 'error') {
+    if (result.type === status.ERROR) {
       throw new ForbiddenException('No se pudo validar el usuario');
     }
 
-    const userRole = result.data.role?.description;
+    const userRole = result.data.rol;
     if (!Object.values(RoleType).includes(userRole as RoleType)) {
       throw new ForbiddenException('Rol no válido');
     }

@@ -86,13 +86,12 @@ export class UsersService {
       'user.email',
       'role.description AS rol',
       'user.deleted',
-      'user.createdAt',
     ])
     .where('user.deleted = :deleted', { deleted: false })
     .andWhere('user.id = :id', { id })
-    .getOne();
+    .getRawOne();
     
-    if(!user) throw new UnauthorizedException('No hemos podido encotrar el usuario');
+    if(!user) return errorResponse('No hemos podido encotrar el usuario')
 
     return successResponse('usuarios encontrado', user)
   }
@@ -143,7 +142,7 @@ export class UsersService {
       ])
       .where('user.email = :email', { email })
       .andWhere('user.deleted = false')
-      .getOne();
+      .getRawOne();
   
     if (!user) return errorResponse('No hemos encontrado el usuario');
 
