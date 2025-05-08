@@ -95,4 +95,10 @@ export class AuthController {
   refresh(@UserDecorator() user: { userId: string }) {
     return this.authService.refreshFromPayload(user);
   }
+
+  @Get('validate-token')
+  @UseGuards(JwtAuthGuard)
+  async validateToken(@Res() res: Response) {
+    return res.status(200).json({ message: 'Token es válido' });
+  }
 }
