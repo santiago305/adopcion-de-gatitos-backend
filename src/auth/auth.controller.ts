@@ -92,8 +92,26 @@ export class AuthController {
 
   @UseGuards(JwtRefreshAuthGuard)
   @Get('refresh')
-  refresh(@UserDecorator() user: { userId: string }) {
-    return this.authService.refreshFromPayload(user);
+  async refresh(@UserDecorator() user: { userId: string }, 
+  @Res({ passthrough: true }) res: Response) {
+    const result = await this.authService.refreshFromPayload(user);
+  
+    if (isTypeResponse(result)) {
+      return result;
+    }
+  
+    const { access_token } = result;
+  
+
+    res.cookie('access_token', access_token, {
+      httpOnly: true,
+      secure: false, 
+      sameSite: 'lax',
+      maxAge: 1000 * 60 * 60, 
+    });
+  
+    // Retorna el nuevo access token
+    return { access_token };
   }
 
   @Get('validate-token')
