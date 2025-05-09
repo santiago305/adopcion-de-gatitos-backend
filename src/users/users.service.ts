@@ -148,9 +148,8 @@ export class UsersService {
 
     return successResponse('Usuario encontrado', user);
   }
-  async findOwnUser(userId: string){
-    const user = await this.findOne(userId);
-    return user;
+  async findOwnUser(id: string){
+    return await this.findOne(id);
   }
 
   async create(dto: CreateUserDto, requesterRole: string) {

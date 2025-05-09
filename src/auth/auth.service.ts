@@ -73,10 +73,10 @@ export class AuthService {
         secret: envs.jwt.secret,
         issuer: envs.jwt.issuer,
       });
-      return !!decoded; // Si el token es válido, devuelve true
+      return !!decoded; 
     } catch (error) {
       console.error('[AuthService][validateAccessToken] error al comporbar el jwt: ',error)
-      return false; // Si el token no es válido, lanza error
+      return false; 
     }
   }
 }

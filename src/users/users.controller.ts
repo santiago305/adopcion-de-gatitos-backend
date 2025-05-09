@@ -15,7 +15,7 @@ import { Roles } from 'src/common/decorators';
 import { RoleType } from 'src/common/constants';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
 import { RolesGuard } from 'src/common/guards/roles.guard';
-import { User as CurrentUser, User } from 'src/common/decorators/user.decorator';
+import { User as CurrentUser } from 'src/common/decorators/user.decorator';
 
 /**
  * Controlador para la gestión de usuarios.
@@ -28,8 +28,7 @@ import { User as CurrentUser, User } from 'src/common/decorators/user.decorator'
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
-
-  @Post()
+  @Post('create')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
   create(
@@ -39,7 +38,7 @@ export class UsersController {
     return this.usersService.create(dto, user.role);
   }
 
-  @Get()
+  @Get('findAll')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   async findAll(
@@ -76,20 +75,19 @@ export class UsersController {
       order: order || 'DESC',
     });
   }
-  @Get(':id')
+  
+  @Get('me')
+  @UseGuards(JwtAuthGuard)
+  getProfile(@CurrentUser() user: { userId: string }) {
+    return this.usersService.findOwnUser(user.userId);
+  }
+  
+  @Get('search/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
-
-  @Get('me')
-  @UseGuards(JwtAuthGuard)
-  getProfile(@User() user: any) {
-    return this.usersService.findOwnUser(user.userId);
-  }
-
-
   @Get('email/:email')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
