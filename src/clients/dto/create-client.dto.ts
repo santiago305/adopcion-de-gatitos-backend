@@ -1,5 +1,4 @@
 import {
-  IsUUID,
   IsPhoneNumber,
   IsDate,
   IsEnum,
@@ -13,12 +12,6 @@ export enum Gender {
 }
 
 export class CreateClientDto {
-  /**
-   * ID del usuario asociado (UUID).
-   */
-  @IsUUID()
-  userId: string;
-
   /**
    * Número de teléfono válido.
    */

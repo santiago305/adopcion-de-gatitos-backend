@@ -3,7 +3,6 @@ import {
   Get,
   Post,
   Patch,
-  Delete,
   Body,
   UseGuards,
   Query,
@@ -35,7 +34,7 @@ export class ClientsController {
    * 
    * @returns {Promise<Client[]>} Lista de todos los clientes.
    */
-  @Get()
+  @Get('findAll')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   findAll(
@@ -78,49 +77,6 @@ export class ClientsController {
     });
   }
 
-  /**
-   * Obtiene un cliente por su ID.
-   * 
-   * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
-   * 
-   * @param {string} id - El ID del cliente a buscar.
-   * @returns {Promise<Client>} El cliente correspondiente al ID.
-   */
-  @Get(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  findOne(@User() user: any) {
-    return this.clientsService.findOne(user);
-  }
-
-  /**
-   * Elimina un cliente por su ID.
-   * 
-   * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
-   * 
-   * @param {string} id - El ID del cliente a eliminar.
-   * @returns {Promise<Client>} El cliente eliminado.
-   */
-  @Patch('remove/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@User() user: any) {
-    return this.clientsService.remove(user);
-  }
-
-  /**
-   * Restaura un cliente eliminado.
-   * 
-   * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
-   * 
-   * @param {string} id - El ID del cliente a restaurar.
-   * @returns {Promise<Client>} El cliente restaurado.
-   */
-  @Delete(':id/restore')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  restore(@User() user: any) {
-    return this.clientsService.restore(user);
-  }
 
   // Rutas de usuarios
 
@@ -133,10 +89,10 @@ export class ClientsController {
    * @param {any} user - Información del usuario que está realizando la solicitud.
    * @returns {Promise<Client>} El cliente recién creado.
    */
-  @Post()
+  @Post('create')
   @UseGuards(JwtAuthGuard)
   @Roles(RoleType.USER)
-  create(@Body() dto: CreateClientDto, @User() user: any) {
+  create(@Body() dto: CreateClientDto, @User() user:{userId:string}) {
     return this.clientsService.create(dto, user);
   }
 
@@ -155,6 +111,50 @@ export class ClientsController {
     return this.clientsService.findOwnClient(user.userId);
   }
 
+    /**
+   * Obtiene un cliente por su ID.
+   * 
+   * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
+   * 
+   * @param {string} id - El ID del cliente a buscar.
+   * @returns {Promise<Client>} El cliente correspondiente al ID.
+   */
+    @Get('search/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+    findOne(@User() user: any) {
+      return this.clientsService.findOne(user);
+    }
+  
+    /**
+     * Elimina un cliente por su ID.
+     * 
+     * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
+     * 
+     * @param {string} id - El ID del cliente a eliminar.
+     * @returns {Promise<Client>} El cliente eliminado.
+     */
+    @Patch('remove/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    remove(@User() user: any) {
+      return this.clientsService.remove(user);
+    }
+  
+    /**
+     * Restaura un cliente eliminado.
+     * 
+     * Solo los usuarios con rol de administrador o moderador pueden acceder a esta ruta.
+     * 
+     * @param {string} id - El ID del cliente a restaurar.
+     * @returns {Promise<Client>} El cliente restaurado.
+     */
+    @Patch('restore/:id')
+    @UseGuards(JwtAuthGuard, RolesGuard)
+    @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+    restore(@User() user: any) {
+      return this.clientsService.restore(user);
+    }
+  
   // Rutas para todos los roles
 
   /**
