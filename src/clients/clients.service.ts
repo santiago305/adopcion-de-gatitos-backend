@@ -172,9 +172,14 @@ export class ClientsService {
     return await this.checkClientStatus({ userId: user.userId }, true, 'Este cliente no ha sido eliminado')
   }
 
-  async isClientExist(user: { userId: string }){
-    return await this.checkClientStatus({ userId: user.userId }, false, 'Este cliente no ha sido eliminado', false)
-  }
+  async isClientExist( userId: string ): Promise<boolean> {
+  const exists = await this.clientRepository
+    .createQueryBuilder('client')
+    .leftJoin('client.user', 'user')
+    .where('user.id = :userId', { userId })
+    .getExists();
+  return exists; 
+}
 
   async update(user: {userId:string}, dto: UpdateClientDto):Promise <SuccessResponse | ErrorResponse> {
     const existing = await this.isClientActive({ userId: user.userId });
