@@ -37,7 +37,7 @@ export class ClientsService {
         await this.clientRepository
           .createQueryBuilder()
           .insert()
-          .into('client')
+          .into(Client)
           .values({
             phone: dto.phone,
             birth_date: dto.birth_date,
@@ -46,10 +46,7 @@ export class ClientsService {
           })
           .execute();
 
-          const client = await this.findOwnClient({ userId: user.userId })
-
-          return successResponse('todo salio perfecto', client)
-
+          return successResponse('todo salio perfecto')
 
       } catch (error) {
         console.error('[ClientsService][create] error al crear un cliente: ', error);
