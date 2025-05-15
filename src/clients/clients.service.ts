@@ -46,7 +46,7 @@ export class ClientsService {
           })
           .execute();
 
-          return successResponse('todo salio perfecto')
+          return successResponse('Todo salio perfecto en tu registro')
 
       } catch (error) {
         console.error('[ClientsService][create] error al crear un cliente: ', error);
