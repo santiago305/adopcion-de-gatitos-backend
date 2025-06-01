@@ -1,5 +1,5 @@
 import { Species } from 'src/species/entities/species.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 
 
 @Entity('breed')
@@ -8,7 +8,11 @@ export class Breed {
   id: string;
 
   @ManyToOne(() => Species, (species) => species.breeds)
+  @JoinColumn({ name: 'species_id' })
   species: Species;
+
+  @Column({ name: 'species_id' })
+  speciesId: string;
 
   @Column()
   name: string;
