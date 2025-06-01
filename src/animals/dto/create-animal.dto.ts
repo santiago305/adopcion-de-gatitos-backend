@@ -1,36 +1,44 @@
-import { IsNotEmpty, IsOptional } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateAnimalDto {}
 export class CreateAnimalsDto {
+  @IsString({ message: 'El nombre del animal debe ser un texto.' })
   @IsNotEmpty({ message: 'El nombre del animal es obligatorio.' })
   name: string;
 
+  @IsString({ message: 'El ID de especie debe ser un texto.' })
   @IsNotEmpty({ message: 'La especie es obligatoria.' })
-  speciesId: number;
+  speciesId: string;
 
+  @IsString({ message: 'El ID de raza debe ser un texto.' })
   @IsNotEmpty({ message: 'La raza es obligatoria.' })
-  breedId: number;
+  breedId: string;
 
-  @IsOptional()
-  diseaseId?: number;
+  @IsString({ message: 'El ID de la enfermedad debe ser un texto.' })
+  @IsNotEmpty({ message: 'El ID de la enfermedad es obligatorio.' })
+  diseaseId: string;
 
-  @IsOptional()
-  healthStatus?: boolean;
+  @IsNotEmpty({ message: 'El estado de salud es obligatorio.' })
+  healthStatus: boolean;
 
-  @IsOptional()
-  entryDate?: Date;
+  @IsNotEmpty({ message: 'La fecha de ingreso es obligatoria.' })
+  @IsString({ message: 'La fecha de ingreso debe ser una fecha válida.' })
+  entryDate: Date;
 
-  @IsOptional()
-  adopted?: boolean;
+  @IsNotEmpty({ message: 'El estado de adopción es obligatorio.' })
+  adopted: boolean;
 
-  @IsOptional()
-  photos?: string[];
+  @IsNotEmpty({ message: 'Las fotos son obligatorias.' })
+  @IsString({ each: true, message: 'Cada foto debe ser una cadena de texto.' })
+  photos: string[];
 
-  @IsOptional()
-  characteristicsId?: number;
+  @IsNotEmpty( { message: 'El ID de las características es obligatorio.' })
+  @IsString({ message: 'El ID de las características debe ser un texto.' })
+  characteristicsId: string;
 
-  @IsOptional()
-  information?: string;
+  @IsNotEmpty(  { message: 'La información del animal es obligatoria.' })
+  @IsString({ message: 'La información del animal debe ser un texto.' })
+  information: string;
 
   @IsOptional()
   status?: boolean;

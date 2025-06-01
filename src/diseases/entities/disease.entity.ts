@@ -2,13 +2,13 @@ import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
 
 @Entity('diseases')
 export class Diseases {
-  @PrimaryGeneratedColumn()
-  id: number;
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
-  @Column({ default: 'ning' })
+  @Column({ default: 'ninguno' })
   name: string;
 
-  @Column({ nullable: true })
+  @Column({ default: 'ninguna' })
   severity: string;
 
   @Column({ default: false })
