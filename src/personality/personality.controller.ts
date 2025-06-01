@@ -1,34 +1,50 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Post, Get, Patch, Param, Body, UseGuards } from '@nestjs/common';
 import { PersonalityService } from './personality.service';
 import { CreatePersonalityDto } from './dto/create-personality.dto';
 import { UpdatePersonalityDto } from './dto/update-personality.dto';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators';
+import { RoleType } from 'src/common/constants';
 
 @Controller('personality')
 export class PersonalityController {
   constructor(private readonly personalityService: PersonalityService) {}
 
-  @Post()
-  create(@Body() createPersonalityDto: CreatePersonalityDto) {
-    return this.personalityService.create(createPersonalityDto);
+  @Post('create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
+  create(@Body() dto: CreatePersonalityDto) {
+    return this.personalityService.create(dto);
   }
 
-  @Get()
+  @Get('findAll')
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.personalityService.findAll();
   }
 
-  @Get(':id')
+  @Get('search/:id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
-    return this.personalityService.findOne(+id);
+    return this.personalityService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updatePersonalityDto: UpdatePersonalityDto) {
-    return this.personalityService.update(+id, updatePersonalityDto);
+  @Patch('update/:id')
+  @UseGuards(JwtAuthGuard)
+  update(@Param('id') id: string, @Body() dto: UpdatePersonalityDto) {
+    return this.personalityService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Patch('delete/:id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
-    return this.personalityService.remove(+id);
+    return this.personalityService.remove(id);
+  }
+
+  @Patch('restore/:id')
+  @UseGuards(JwtAuthGuard)
+  restore(@Param('id') id: string) {
+    return this.personalityService.restore(id);
   }
 }
