@@ -1,34 +1,58 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Post,
+  Get,
+  Patch,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
 import { DiseasesService } from './diseases.service';
-import { CreateDiseaseDto } from './dto/create-disease.dto';
+import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
+import { RolesGuard } from 'src/common/guards/roles.guard';
+import { Roles } from 'src/common/decorators';
+import { RoleType } from 'src/common/constants';
+import { CreateDiseasesDto } from './dto/create-disease.dto';
 import { UpdateDiseaseDto } from './dto/update-disease.dto';
 
 @Controller('diseases')
 export class DiseasesController {
   constructor(private readonly diseasesService: DiseasesService) {}
 
-  @Post()
-  create(@Body() createDiseaseDto: CreateDiseaseDto) {
-    return this.diseasesService.create(createDiseaseDto);
+  @Post('create')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
+  create(@Body() dto: CreateDiseasesDto) {
+    return this.diseasesService.create(dto);
   }
 
-  @Get()
+  @Get('findAll')
+  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.diseasesService.findAll();
   }
 
-  @Get(':id')
+  @Get('search/:id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
-    return this.diseasesService.findOne(+id);
+    return this.diseasesService.findOne(id);
   }
 
-  @Patch(':id')
-  update(@Param('id') id: string, @Body() updateDiseaseDto: UpdateDiseaseDto) {
-    return this.diseasesService.update(+id, updateDiseaseDto);
+  @Patch('update/:id')
+  @UseGuards(JwtAuthGuard)
+  update(@Param('id') id: string, @Body() dto: UpdateDiseaseDto) {
+    return this.diseasesService.update(id, dto);
   }
 
-  @Delete(':id')
+  @Patch('delete/:id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
-    return this.diseasesService.remove(+id);
+    return this.diseasesService.remove(id);
+  }
+
+  @Patch('restore/:id')
+  @UseGuards(JwtAuthGuard)
+  restore(@Param('id') id: string) {
+    return this.diseasesService.restore(id);
   }
 }
