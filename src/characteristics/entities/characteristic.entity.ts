@@ -1,5 +1,5 @@
 import { Personality } from 'src/personality/entities/personality.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
 
 @Entity('characteristics')
 export class Characteristics {
@@ -7,7 +7,11 @@ export class Characteristics {
   id: string;
 
   @ManyToOne(() => Personality, (personality) => personality.characteristics)
+  @JoinColumn({ name: 'personality_id' })
   personality: Personality;
+  
+  @Column({ name: 'personality_id' })
+  personalityId: string;
 
   @Column({ nullable: true })
   color: string;
@@ -15,8 +19,8 @@ export class Characteristics {
   @Column({ name: 'size', nullable: true })
   size: string;
 
-  @Column('numeric', { nullable: true })
-  weight: number;
+  @Column({ nullable: true })
+  weight: string;
 
   @Column({ nullable: true })
   fur: string;
@@ -25,7 +29,7 @@ export class Characteristics {
   sex: string;
 
   @Column({ nullable: true })
-  age: number;
+  age: string;
 
   @Column({ default: false })
   sterilized: boolean;
