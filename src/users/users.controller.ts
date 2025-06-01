@@ -24,6 +24,8 @@ import { User as CurrentUser } from 'src/common/decorators/user.decorator';
  * 
  * @Controller('users') 
  */
+
+// localhost:3000/api/users
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}

@@ -93,7 +93,7 @@ export class UsersService {
     
     if(!user) return errorResponse('No hemos podido encotrar el usuario')
 
-    return successResponse('usuarios encontrado', user)
+    return successResponse('usuario encontrado', user)
   }
   private async checkUserStatus(
     id: string, 
