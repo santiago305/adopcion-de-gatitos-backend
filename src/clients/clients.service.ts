@@ -9,7 +9,7 @@ import { User } from 'src/users/entities/user.entity';
 import { CreateClientDto } from './dto/create-client.dto';
 import { UpdateClientDto } from './dto/update-client.dto';
 import { UsersService } from 'src/users/users.service';
-import { isTypeResponse } from 'src/common/guards/guard';
+import { isErrorResponse } from 'src/common/guards/guard';
 import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
 import { errorResponse, successResponse } from 'src/common/utils/response';
 
@@ -180,7 +180,7 @@ export class ClientsService {
 
   async update(user: {userId:string}, dto: UpdateClientDto):Promise <SuccessResponse | ErrorResponse> {
     const existing = await this.isClientActive({ userId: user.userId });
-    if(isTypeResponse(existing)) return existing;
+    if(isErrorResponse(existing)) return existing;
 
     try {
       await this.clientRepository
@@ -223,14 +223,14 @@ export class ClientsService {
   }
   async remove(user: {userId:string}) {
     const isActive = await this.isClientActive({ userId: user.userId })
-    if(isTypeResponse(isActive))return isActive;
+    if(isErrorResponse(isActive))return isActive;
 
     return await this.toggleDelete({ userId: user.userId }, true, 'El cliente se ha eliminado correctamente', 'no se pudo eliminar el cliente')
   }
 
   async restore(user: {userId:string}) {
     const isDelete = await this.isClientActive({ userId: user.userId })
-    if(isTypeResponse(isDelete))return isDelete;
+    if(isErrorResponse(isDelete))return isDelete;
 
     return await this.toggleDelete({ userId: user.userId }, false, 'El cliente se ha restaurado correctamente', 'no se pudo restaurar el cliente')
   }
