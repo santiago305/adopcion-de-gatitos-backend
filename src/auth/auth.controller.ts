@@ -15,7 +15,6 @@ import { CreateUserDto } from 'src/users/dto/create-user.dto';
 import { ErrorResponse, isTypeResponse } from 'src/common/guards/guard';
 import { successResponse } from 'src/common/utils/response';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
-
 @Controller('auth')
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
@@ -23,6 +22,7 @@ export class AuthController {
   @Post('register')
   async register(
     @Body() dto: CreateUserDto,
+
     @Res({ passthrough: true }) res: Response
   ) {
     const result = await this.authService.register(dto);

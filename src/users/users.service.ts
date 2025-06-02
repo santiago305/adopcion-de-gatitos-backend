@@ -8,6 +8,7 @@ import * as argon2 from 'argon2';
 import { RoleType } from 'src/common/constants';
 import { errorResponse, successResponse } from 'src/common/utils/response';
 import { RolesService } from '../roles/roles.service';
+import { isTypeResponse } from 'src/common/guards/guard';
 
 @Injectable()
 export class UsersService {
@@ -16,6 +17,7 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
 
     private readonly rolesService: RolesService,
+
   ) {}
 
   private async getUsers(
@@ -152,26 +154,34 @@ export class UsersService {
     return await this.findOne(id);
   }
 
-  async create(dto: CreateUserDto, requesterRole: string) {
+  async create(dto: CreateUserDto, user?: { userId: string }) {
 
     await this.isUserEmail(dto.email);
-    
-    if (dto.roleId) {
-      await this.rolesService.isRoleActive(dto.roleId);
-    }
 
     const hashedPassword = await argon2.hash(dto.password, {
       type: argon2.argon2id,
     });
 
-    const isAdmin = requesterRole === RoleType.ADMIN;
+    const response = await this.findOwnUser(user.userId);
+    console.log('[DEBUG][create] response', response);
+  if (isTypeResponse(response)) {
+    throw new UnauthorizedException(response.message);
+  }
 
-    const targetRoleType = isAdmin ? dto.roleId ?? RoleType.USER : RoleType.USER;
-  
-    const roleResult = await this.rolesService.findOneDescription(targetRoleType);
+    const userRole = response.data.rol;
 
-    const roleId = roleResult.data.id || RoleType.USER ;
-  
+    const isAdmin = userRole === RoleType.ADMIN;
+// 
+    let roleId: string | null;
+
+    if (isAdmin && dto.roleId) {
+      await this.rolesService.isRoleActive(dto.roleId); 
+      roleId = dto.roleId;
+    }else {
+      const userRole = await this.rolesService.findOneDescription(RoleType.USER);
+      roleId = userRole.data.id;
+    }
+// 
     try {
       await this.userRepository
         .createQueryBuilder()

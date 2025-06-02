@@ -5,7 +5,6 @@ import { UsersService } from '../users/users.service';
 import { LoginAuthDto } from './dto';
 import { envs } from 'src/config/envs';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { RoleType } from 'src/common/constants';
 import { ErrorResponse } from 'src/common/interfaces/response.interface';
 
 @Injectable()
@@ -49,7 +48,7 @@ export class AuthService {
 
   // Registro de un nuevo usuario
   async register(dto: CreateUserDto): Promise<{ access_token: string; refresh_token: string } | ErrorResponse> {
-    await this.usersService.create(dto, RoleType.USER);
+    await this.usersService.create(dto);
 
     return this.login(dto);
   }

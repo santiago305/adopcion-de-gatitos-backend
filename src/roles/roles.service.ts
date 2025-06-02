@@ -115,10 +115,10 @@ export class RolesService {
     return await this.checkRoleStatus(id, true, 'Ese rol todavia no ha sido eliminado')
   }
 
-  async isRoleExisting (description: string){
+  async isRoleExisting (id: string){
     const isRoleExisting = await this.roleRepository
     .createQueryBuilder('role')
-    .where('role.description = :description', { description })
+    .where('role.id = :id', { id })
     .andWhere('role.deleted = false')
     .getExists()
 

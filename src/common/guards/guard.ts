@@ -11,6 +11,11 @@ export function isTypeResponse(response: unknown): response is ErrorResponse {
     typeof response === 'object' &&
     response !== null &&
     'type' in response &&
-    Object.values(status).includes((response as any).type)
+    [
+      status.ERROR,
+      status.INVALID,
+      status.UNAUTHORIZED,
+      status.WARNING
+    ].includes((response as any).type)
   );
 }
