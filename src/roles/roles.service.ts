@@ -21,22 +21,25 @@ export class RolesService {
 
 
   async create(dto: CreateRoleDto) {
-    await this.isRoleExisting(dto.description)
-
-    try {
-     await this.roleRepository
-    .createQueryBuilder()
-    .insert()
-    .into(Role)
-    .values(dto)
-    .returning(['id', 'description', 'deleted'])
-    .execute();
-
-    return successResponse('Rol creado exitosamente')
-    
-    } catch (error) {
-       console.error('[RolesService][create] error al crear el rol: ', error)
-       throw new UnauthorizedException('No hemos podido crear el rol')
+    const isExisting = await this.isRoleExisting(dto.description)
+    if (!isExisting) {
+      try {
+       await this.roleRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Role)
+      .values(dto)
+      .returning(['id', 'description', 'deleted'])
+      .execute();
+  
+      return successResponse('Rol creado exitosamente')
+      
+      } catch (error) {
+         console.error('[RolesService][create] error al crear el rol: ', error)
+         throw new UnauthorizedException('No hemos podido crear el rol')
+      }
+    } else {
+      throw new UnauthorizedException('El rol ya existe');
     }
   }
 
@@ -119,9 +122,7 @@ export class RolesService {
     .andWhere('role.deleted = false')
     .getExists()
 
-    if(!isRoleExisting)throw new UnauthorizedException('No hay registros de este rol');
-
-    return true;
+    return isRoleExisting;
   }
   /**
    * Actualiza un rol existente por ID.
@@ -143,7 +144,7 @@ export class RolesService {
 
         const updatedRole = await this.findOne(id);
 
-        return successResponse('Hemos modificado el rol', updatedRole)
+        return successResponse('Hemos modificado el rol', updatedRole.data)
         
     } catch (error) {
       console.error('[RolesService][update] error al modificar el rol: ',error)
