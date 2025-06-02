@@ -5,7 +5,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Role } from './entities/role.entity';
 import { successResponse } from 'src/common/utils/response';
-import { isTypeResponse } from 'src/common/guards/guard';
+import { isErrorResponse } from 'src/common/guards/guard';
 
 /**
  * Servicio encargado de la gestión de roles en el sistema.
@@ -174,7 +174,7 @@ private async toggleDelete(id: string, deleted: boolean, successMsg: string, err
   
   async remove(id: string) {
     const isActive = await this.isRoleActive(id);
-    if ( isTypeResponse(isActive)) return isActive; 
+    if (isErrorResponse(isActive)) return isActive; 
     return this.toggleDelete(id, true, 'El rol ha sido eliminado','no se pudo eliminar el rol')
   }
 
@@ -186,7 +186,7 @@ private async toggleDelete(id: string, deleted: boolean, successMsg: string, err
    */
   async restore(id: string) {
     const isDeleted = await this.isRoleDeleted(id)
-    if ( isTypeResponse(isDeleted)) return isDeleted;
+    if (isErrorResponse(isDeleted)) return isDeleted;
     return this.toggleDelete(id, false, 'El rol ha sido restaurado','no se pudo restaurar el rol')
   }
 }
