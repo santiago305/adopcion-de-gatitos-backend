@@ -26,7 +26,7 @@ export class Animals {
   healthStatus: boolean;
 
   @Column({ name: 'entry_date', type: 'date', nullable: true })
-  entryDate: Date;
+  entryDate: string;
 
   @Column({ default: false })
   adopted: boolean;

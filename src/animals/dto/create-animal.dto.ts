@@ -1,6 +1,5 @@
-import { IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsDateString, IsNotEmpty, IsOptional, IsString } from "class-validator";
 
-export class CreateAnimalDto {}
 export class CreateAnimalsDto {
   @IsString({ message: 'El nombre del animal debe ser un texto.' })
   @IsNotEmpty({ message: 'El nombre del animal es obligatorio.' })
@@ -22,8 +21,8 @@ export class CreateAnimalsDto {
   healthStatus: boolean;
 
   @IsNotEmpty({ message: 'La fecha de ingreso es obligatoria.' })
-  @IsString({ message: 'La fecha de ingreso debe ser una fecha válida.' })
-  entryDate: Date;
+  @IsDateString()
+  entryDate: string;
 
   @IsNotEmpty({ message: 'El estado de adopción es obligatorio.' })
   adopted: boolean;
