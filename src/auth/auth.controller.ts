@@ -12,7 +12,7 @@ import { AuthService } from './auth.service';
 import { LoginAuthDto } from './dto/login-auth.dto';
 import { Response } from 'express';
 import { CreateUserDto } from 'src/users/dto/create-user.dto';
-import { ErrorResponse, isTypeResponse } from 'src/common/guards/guard';
+import { ErrorResponse, isErrorResponse } from 'src/common/guards/guard';
 import { successResponse } from 'src/common/utils/response';
 import { JwtAuthGuard } from './guard/jwt-auth.guard';
 @Controller('auth')
@@ -26,9 +26,8 @@ export class AuthController {
     @Res({ passthrough: true }) res: Response
   ) {
     const result = await this.authService.register(dto);
-    if (isTypeResponse(result)) {
-      return result;
-    }
+    if (isErrorResponse(result)) return result;
+    
 
     const { access_token, refresh_token } = result;
 
@@ -56,7 +55,7 @@ export class AuthController {
   ):Promise<{ access_token: string } | ErrorResponse> {
     const result = await this.authService.login(dto);
 
-    if (isTypeResponse(result)) return result;
+    if (isErrorResponse(result)) return result;
     
 
     const { access_token, refresh_token } = result;
@@ -96,9 +95,8 @@ export class AuthController {
   @Res({ passthrough: true }) res: Response) {
     const result = await this.authService.refreshFromPayload(user);
   
-    if (isTypeResponse(result)) {
-      return result;
-    }
+    if (isErrorResponse(result)) return result;
+    
   
     const { access_token } = result;
   
