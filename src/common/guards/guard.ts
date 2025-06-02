@@ -1,4 +1,5 @@
 import { status } from "../constants";
+import { SuccessResponse } from "../interfaces/response.interface";
 
 export type ErrorResponse =
   | { type: status.ERROR; message: string }
@@ -6,7 +7,7 @@ export type ErrorResponse =
   | { type: status.UNAUTHORIZED; message: string }
   | { type: status.WARNING; message: string };
 
-export function isTypeResponse(response: unknown): response is ErrorResponse {
+export function isErrorResponse(response: unknown): response is ErrorResponse {
   return (
     typeof response === 'object' &&
     response !== null &&
@@ -17,5 +18,16 @@ export function isTypeResponse(response: unknown): response is ErrorResponse {
       status.UNAUTHORIZED,
       status.WARNING
     ].includes((response as any).type)
+  );
+}
+
+export function isSuccessResponse<T = any>(
+  response: unknown
+): response is SuccessResponse<T> {
+  return (
+    typeof response === 'object' &&
+    response !== null &&
+    'type' in response &&
+    (response as any).type === status.SUCCESS
   );
 }

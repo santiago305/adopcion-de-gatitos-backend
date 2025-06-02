@@ -8,7 +8,7 @@ import * as argon2 from 'argon2';
 import { RoleType } from 'src/common/constants';
 import { errorResponse, successResponse } from 'src/common/utils/response';
 import { RolesService } from '../roles/roles.service';
-import { isTypeResponse } from 'src/common/guards/guard';
+import { isErrorResponse } from 'src/common/guards/guard';
 
 @Injectable()
 export class UsersService {
@@ -162,24 +162,30 @@ export class UsersService {
       type: argon2.argon2id,
     });
 
-    const response = await this.findOwnUser(user.userId);
-    console.log('[DEBUG][create] response', response);
-  if (isTypeResponse(response)) {
-    throw new UnauthorizedException(response.message);
-  }
-
-    const userRole = response.data.rol;
-
-    const isAdmin = userRole === RoleType.ADMIN;
-// 
     let roleId: string | null;
+    if (user?.userId) {
+      // Caso 1: llamado por admin/moderador
+      const response = await this.findOwnUser(user.userId);
 
-    if (isAdmin && dto.roleId) {
-      await this.rolesService.isRoleActive(dto.roleId); 
-      roleId = dto.roleId;
-    }else {
-      const userRole = await this.rolesService.findOneDescription(RoleType.USER);
-      roleId = userRole.data.id;
+      if (isErrorResponse(response)) {
+        throw new UnauthorizedException(response.message);
+      }
+
+      const userRole = response.data.rol;
+      const isAdmin = userRole === RoleType.ADMIN;
+
+      if (isAdmin && dto.roleId) {
+        await this.rolesService.isRoleActive(dto.roleId);
+        roleId = dto.roleId;
+      } else {
+        const defaultRole = await this.rolesService.findOneDescription(RoleType.USER);
+        roleId = defaultRole.data.id;
+      }
+
+    } else {
+      // Caso 2: llamado desde register (sin usuario logueado)
+      const defaultRole = await this.rolesService.findOneDescription(RoleType.USER);
+      roleId = defaultRole.data.id;
     }
 // 
     try {

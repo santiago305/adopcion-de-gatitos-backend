@@ -35,7 +35,6 @@ export class UsersController {
   @Roles(RoleType.ADMIN)
   create(
     @Body() dto: CreateUserDto,
-    // @CurrentUser() user: { role: RoleType }
     @CurrentUser() user:{userId:string}
   ) {
     return this.usersService.create(dto, user);
