@@ -16,15 +16,9 @@ import { RoleType } from 'src/common/constants';
 import { RolesGuard } from 'src/common/guards/roles.guard';
 import { User as CurrentUser } from 'src/common/decorators/user.decorator';
 
-/**
- * Controlador para gestionar las rutas relacionadas con los clientes.
- * Este controlador proporciona operaciones para administrar y acceder a los clientes,
- * tanto para usuarios como para administradores y moderadores.
- */
 @Controller('clients')
 export class ClientsController {
   constructor(private readonly clientsService: ClientsService) {}
-
 
   @Get('findAll')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -44,7 +38,6 @@ export class ClientsController {
     });
   }
 
-
   @Get('actives')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
@@ -63,14 +56,14 @@ export class ClientsController {
     });
   }
 
-
   @Post('create')
   @UseGuards(JwtAuthGuard)
-  @Roles(RoleType.USER)
-  create(@Body() dto: CreateClientDto, @CurrentUser() user:{userId:string}) {
+  create(
+    @Body() dto: CreateClientDto & { userId?: string },
+    @CurrentUser() user: { userId: string }
+  ) {
     return this.clientsService.create(dto, user);
   }
-
 
   @Get('client-me')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -82,10 +75,9 @@ export class ClientsController {
   @Get('check-existing-clients/me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.USER)
-  checkExistingClients(@CurrentUser() user: {userId : string}){
-    return this.clientsService.isClientExist(user.userId)
+  checkExistingClients(@CurrentUser() user: { userId: string }) {
+    return this.clientsService.isClientExist(user.userId);
   }
-
 
   @Get('search/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
@@ -106,15 +98,10 @@ export class ClientsController {
   restore(@CurrentUser() user: any) {
     return this.clientsService.restore(user);
   }
-  
 
-  @Patch(':id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN, RoleType.MODERATOR, RoleType.USER)
-  update(
-    @Body() dto: UpdateClientDto,
-    @CurrentUser() user: any,
-  ) {
+  @Patch('update/:id')
+  @UseGuards(JwtAuthGuard)
+  update(@Body() dto: UpdateClientDto, @CurrentUser() user: any) {
     return this.clientsService.update(user, dto);
   }
 }

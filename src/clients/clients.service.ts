@@ -1,4 +1,5 @@
 import { 
+  BadRequestException,
   Injectable,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -12,6 +13,7 @@ import { UsersService } from 'src/users/users.service';
 import { isErrorResponse } from 'src/common/guards/guard';
 import { ErrorResponse, SuccessResponse } from 'src/common/interfaces/response.interface';
 import { errorResponse, successResponse } from 'src/common/utils/response';
+import { RoleType } from 'src/common/constants';
 
 /**
  * Servicio para gestionar la lógica de negocio relacionada con los clientes.
@@ -28,74 +30,105 @@ export class ClientsService {
     private readonly userService: UsersService,
   ) {}
 
-  async create(dto: CreateClientDto, user: { userId: string }) {
-      await this.userService.isUserActive(user.userId)
+  async create(dto: CreateClientDto & { userId?: string }, currentUser: { userId: string }) {
+    const requester = await this.userService.findOne(currentUser.userId);
+    if (isErrorResponse(requester)) {
+      throw new BadRequestException(requester.message);
+    }
 
-      await this.userService.findOwnUser(user.userId);
+    // Si el solicitante es USER, solo puede crearse a sí mismo
+    if (requester.data.rol === RoleType.USER) {
+      await this.userService.isUserActive(currentUser.userId);
+      await this.userService.findOwnUser(currentUser.userId);
 
-      try {
-        await this.clientRepository
-          .createQueryBuilder()
-          .insert()
-          .into(Client)
-          .values({
-            phone: dto.phone,
-            birth_date: dto.birth_date,
-            gender: dto.gender,
-            user: { id: user.userId },
-          })
-          .execute();
+      const exists = await this.isClientExist(currentUser.userId);
+      if (exists) throw new BadRequestException('Ya tienes un cliente registrado');
 
-          return successResponse('Todo salio perfecto en tu registro')
+      await this.clientRepository
+        .createQueryBuilder()
+        .insert()
+        .into(Client)
+        .values({
+          phone: dto.phone,
+          birth_date: dto.birth_date,
+          gender: dto.gender,
+          user: { id: currentUser.userId },
+        })
+        .execute();
 
-      } catch (error) {
-        console.error('[ClientsService][create] error al crear un cliente: ', error);
-        throw new UnauthorizedException('Error inesperado al crear el cliente')
-        
-      }
+      return successResponse('Cliente creado exitosamente');
+    }
 
+    // Si el solicitante es ADMIN o MODERATOR, debe pasar el userId de un USER válido
+    if (!dto.userId) {
+      throw new BadRequestException('Debes proporcionar el ID del usuario para asignar el cliente');
+    }
+
+    const targetUser = await this.userService.findOne(dto.userId);
+    if(isErrorResponse(targetUser)){
+      throw new BadRequestException(targetUser.message);
+    }
+    if (targetUser.data.rol !== RoleType.USER) {
+      throw new UnauthorizedException('Solo se puede asignar un cliente a un usuario con rol USER');
+    }
+
+    const alreadyExists = await this.isClientExist(dto.userId);
+    if (alreadyExists) throw new BadRequestException('Este usuario ya tiene un cliente asociado');
+
+    await this.clientRepository
+      .createQueryBuilder()
+      .insert()
+      .into(Client)
+      .values({
+        phone: dto.phone,
+        birth_date: dto.birth_date,
+        gender: dto.gender,
+        user: { id: dto.userId },
+      })
+      .execute();
+
+    return successResponse('Cliente creado correctamente por administrador o moderador');
   }
 
   private async getClients(
-    whereClause?: string,
-    page: number = 1,
-    filters?: { gender?: string },
-    sortBy: string = 'client.createdAt',
-    order: 'ASC' | 'DESC' = 'DESC'
-  ) {
-    const pageSize = 20;
-    const offset = (page - 1) * pageSize;
-  
-    const query = this.userRepository
-      .createQueryBuilder('client')
-      .leftJoin('client.user', 'user')
-      .select([
-        'client.id',
-        'user.name AS name',
-        'user.email As email',
-        'client.phone',
-        'client.birth_date',
-        'client.gender',
-        'client.deleted',
-      ])
-      .skip(offset)
-      .take(pageSize);
-  
-    // Aplica condiciones en orden seguro
-    if (whereClause) {
-      query.where(whereClause);
-    } else {
-      query.where('1=1'); // para permitir encadenar andWhere incluso si no hay filtro base
-    }
-  
-    if (filters?.gender) {
-      query.andWhere('client.gender = :gender', { gender: filters.gender });
-    }
-  
-    query.orderBy(sortBy, order);
-  
-    return query.getRawMany();
+  whereClause?: string,
+  page: number = 1,
+  filters?: { gender?: string },
+  sortBy: string = 'client.createdAt',
+  order: 'ASC' | 'DESC' = 'DESC'
+) {
+  const pageSize = 20;
+  const offset = (page - 1) * pageSize;
+
+  const query = this.clientRepository
+    .createQueryBuilder('client')
+    .leftJoin('client.user', 'user')
+    .select([
+      'client.id',
+      'user.name AS name',
+      'user.email AS email',
+      'client.phone',
+      'client.birth_date',
+      'client.gender',
+      'client.deleted',
+    ])
+    .skip(offset)
+    .take(pageSize);
+
+  if (whereClause) {
+    query.where(whereClause);
+  } else {
+    query.where('1=1');
   }
+
+  if (filters?.gender) {
+    query.andWhere('client.gender = :gender', { gender: filters.gender });
+  }
+
+  query.orderBy(sortBy, order);
+
+  return query.getRawMany();
+}
   async findAll(params: {
     page?: number,
     filters?: { gender?: string },
