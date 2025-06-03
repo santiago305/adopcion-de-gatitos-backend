@@ -237,8 +237,11 @@ export class UsersService {
       .execute();
 
       const updateUser = await this.findOne(id)
+      if (isErrorResponse(updateUser)) {
+        throw new UnauthorizedException(updateUser.message);
+      }
 
-      return successResponse('Modificacion terminada', updateUser)
+      return successResponse('Modificacion terminada', updateUser.data)
     } catch (error) {
       console.error('[UserService][update] error al editar el usuario: ', error);
       throw new UnauthorizedException('No pudimos modificar el usuario')
