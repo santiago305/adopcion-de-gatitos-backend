@@ -102,17 +102,41 @@ export class ClientsController {
   }
 
 
+  @Get('checkClientStatus/active')
+  @UseGuards(JwtAuthGuard)
+  @Roles(RoleType.USER)
+  checkClientStatusTrue(@CurrentUser() user: { userId: string }) {
+    const target: { type: 'userId'; value: string } = { type: 'userId', value: user.userId };
+    return this.clientsService.isClientActive(target);
+  }
+  @Get('checkClientStatus/remove')
+  @UseGuards(JwtAuthGuard)
+  @Roles(RoleType.USER)
+  checkClientStatusFalse(@CurrentUser() user: { userId: string }) {
+    const target: { type: 'userId'; value: string } = { type: 'userId', value: user.userId };
+    return this.clientsService.isClientDeleted(target);
+  }
+
+  @Patch('remove/me')
+  @UseGuards(JwtAuthGuard)
+  @Roles(RoleType.USER)
+  removeOwn(@CurrentUser() user: any) {
+    return this.clientsService.remove(user);
+  }
+
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  remove(@CurrentUser() user: any) {
-    return this.clientsService.remove(user);
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+  removeById(@Param('id') clientId: string, @CurrentUser() user: any) {
+    return this.clientsService.remove(user, clientId);
   }
 
   @Patch('restore/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  restore(@CurrentUser() user: any) {
-    return this.clientsService.restore(user);
+  restore(@Param('id') clientId: string, @CurrentUser() user: any) {
+    return this.clientsService.restore(user, clientId);
   }
+
 
 }
