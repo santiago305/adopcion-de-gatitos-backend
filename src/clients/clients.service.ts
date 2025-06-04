@@ -65,7 +65,7 @@ export class ClientsService {
     }
 
     const targetUser = await this.userService.findOne(dto.userId);
-    if(isErrorResponse(targetUser)){
+    if (isErrorResponse(targetUser)) {
       throw new BadRequestException(targetUser.message);
     }
     if (targetUser.data.rol !== RoleType.USER) {
@@ -87,7 +87,11 @@ export class ClientsService {
       })
       .execute();
 
-    return successResponse('Cliente creado correctamente por administrador o moderador');
+    // Personalizar mensaje con rol y nombre del requester
+    const roleName = requester.data.rol === RoleType.ADMIN ? 'administrador' : 'moderador';
+    const message = `Cliente creado correctamente por el ${roleName} ${requester.data.user_name || ''}`.trim();
+
+    return successResponse(message);
   }
 
   private async getClients(
@@ -103,6 +107,7 @@ export class ClientsService {
   const query = this.clientRepository
     .createQueryBuilder('client')
     .leftJoin('client.user', 'user')
+    .leftJoin('user.role', 'role')
     .select([
       'client.id',
       'user.name AS name',
