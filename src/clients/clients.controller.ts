@@ -87,6 +87,21 @@ export class ClientsController {
     return this.clientsService.findByClientId(clientId);
   }
 
+  @Patch('update/me')
+  @UseGuards(JwtAuthGuard)
+  @Roles(RoleType.USER)
+  updateOwn(@Body() dto: UpdateClientDto, @CurrentUser() user: { userId: string }) {
+    return this.clientsService.updateOwn(user, dto);
+  }
+
+  @Patch('update/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
+  updateById(@Param('id') clientId: string, @Body() dto: UpdateClientDto) {
+    return this.clientsService.updateByClientId(clientId, dto);
+  }
+
+
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   remove(@CurrentUser() user: any) {
@@ -100,9 +115,4 @@ export class ClientsController {
     return this.clientsService.restore(user);
   }
 
-  @Patch('update/:id')
-  @UseGuards(JwtAuthGuard)
-  update(@Body() dto: UpdateClientDto, @CurrentUser() user: any) {
-    return this.clientsService.update(user, dto);
-  }
 }

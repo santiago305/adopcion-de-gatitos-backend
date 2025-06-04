@@ -225,31 +225,59 @@ export class ClientsService {
   return exists; 
 }
 
-  async update(user: {userId:string}, dto: UpdateClientDto):Promise <SuccessResponse | ErrorResponse> {
-    const existing = await this.isClientActive({ userId: user.userId });
-    if(isErrorResponse(existing)) return existing;
+// FUTURO:
+// En caso se agregue un campo booleano como `canBeEditedByAdmin` en la entidad Client,
+// se debe incluir una validación antes de permitir la modificación por parte de roles ADMIN o MODERATOR.
+// Ejemplo:
+// const client = await this.clientRepository.findOne({ where: { id: clientId } });
+// if (!client.canBeEditedByAdmin) return errorResponse('No se permite modificar este cliente');
+
+  private async updateClient(
+    condition: { type: 'userId' | 'clientId'; value: string },
+    dto: UpdateClientDto
+  ): Promise<SuccessResponse | ErrorResponse> {
+    // Validar si el cliente existe y no está eliminado
+    const exists = await this.clientRepository
+      .createQueryBuilder('client')
+      .where(`client.${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
+        value: condition.value,
+      })
+      .andWhere('client.deleted = false')
+      .getExists();
+
+    if (!exists) return errorResponse('Cliente no existe o ha sido eliminado');
 
     try {
       await this.clientRepository
         .createQueryBuilder()
-        .update('client')
+        .update(Client)
         .set({
           phone: dto.phone,
           birth_date: dto.birth_date,
           gender: dto.gender,
         })
-        .where('user_id = :id', { userId: user.userId })
-        .andWhere('client.deleted = false')
+        .where(`client.${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
+          value: condition.value,
+        })
+        .andWhere('deleted = false')
         .execute();
-        
-        const updateClient = this.findOne({ userId: user.userId })
 
-      return successResponse('Cliente actualizado correctamente', updateClient)
+      // Reutilizar getClientData con el mismo tipo y valor
+      return this.getClientData(condition.type, condition.value);
     } catch (error) {
-      console.error('[ClientsService][Update] hubo un problema en la actualizacion: ', error);
-      return errorResponse('Hubo un error al actualizar el cliente')
+      console.error('[ClientsService][updateClient] Error al actualizar:', error);
+      return errorResponse('Hubo un error al actualizar el cliente');
     }
+  }
 
+  // Usuario actualiza su propio cliente
+  async updateOwn(user: { userId: string }, dto: UpdateClientDto): Promise<SuccessResponse | ErrorResponse> {
+    return this.updateClient({ type: 'userId', value: user.userId }, dto);
+  }
+
+  // Admin o moderador actualiza por id de cliente
+  async updateByClientId(clientId: string, dto: UpdateClientDto): Promise<SuccessResponse | ErrorResponse> {
+    return this.updateClient({ type: 'clientId', value: clientId }, dto);
   }
 
   private async toggleDelete(user: {userId:string}, deleted: boolean, successMsg: string, errorMsg: string):Promise<SuccessResponse | ErrorResponse> {
