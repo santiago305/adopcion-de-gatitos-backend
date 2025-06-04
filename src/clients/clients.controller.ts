@@ -6,6 +6,7 @@ import {
   Body,
   UseGuards,
   Query,
+  Param,
 } from '@nestjs/common';
 import { ClientsService } from './clients.service';
 import { CreateClientDto } from './dto/create-client.dto';
@@ -69,7 +70,7 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.USER)
   findMyClient(@CurrentUser() user: { userId: string }) {
-    return this.clientsService.findOwnClient(user);
+    return this.clientsService.findOne(user);
   }
 
   @Get('check-existing-clients/me')
@@ -82,8 +83,8 @@ export class ClientsController {
   @Get('search/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  findOne(@CurrentUser() user: any) {
-    return this.clientsService.findOne(user);
+  findOne(@Param('id') clientId: string) {
+    return this.clientsService.findByClientId(clientId);
   }
 
   @Patch('remove/:id')

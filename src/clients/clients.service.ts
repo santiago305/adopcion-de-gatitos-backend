@@ -152,35 +152,44 @@ export class ClientsService {
     return await this.getClients('role.deleted = false', params.page, params.filters, params.sortBy, params.order)
   }
 
+  private async getClientData(
+    where: 'userId' | 'clientId',
+    value: string
+  ): Promise<SuccessResponse | ErrorResponse> {
+    const query = this.clientRepository
+      .createQueryBuilder('client')
+      .leftJoin('client.user', 'user')
+      .select([
+        'client.id AS id',
+        'user.name AS name',
+        'user.email AS email',
+        'client.phone AS phone',
+        'client.birth_date AS birth_date',
+        'client.gender AS gender',
+      ])
+      .where('client.deleted = :deleted', { deleted: false });
 
-  async findOne(user: { userId: string }):Promise <SuccessResponse|ErrorResponse> {
-    const client = await this.clientRepository
-    .createQueryBuilder('client')
-    .leftJoin('client.user', 'user')
-    .select([
-      'client.id',
-      'user.name AS name',
-      'user.email AS email',
-      'client.phone',
-      'client.birth_date',
-      'client.gender',
-      'client.deleted',
-      'client.user_id'
-    ])
-    .where('client.deleted = :deleted', { deleted: false })
-    .andWhere('user_id = :userId', { userId: user.userId }) 
-    .getOne();
+    if (where === 'userId') {
+      query.andWhere('client.user_id = :value', { value });
+    } else {
+      query.andWhere('client.id = :value', { value });
+    }
 
-    if (!client) return errorResponse('cliente no encontrado');
+    const client = await query.getRawOne();
 
-    return successResponse('Cliente encontrado', client)
+    if (!client) return errorResponse('Cliente no encontrado');
+
+    return successResponse('Cliente encontrado', client);
   }
 
-  async findOwnClient(user: { userId: string }):Promise<SuccessResponse | ErrorResponse> {
-    const client = await this.findOne({ userId: user.userId })
-    return client
+  async findOne(user: { userId: string }): Promise<SuccessResponse | ErrorResponse> {
+    return this.getClientData('userId', user.userId);
   }
-  
+
+  async findByClientId(clientId: string): Promise<SuccessResponse | ErrorResponse> {
+    return this.getClientData('clientId', clientId);
+  }
+
   private async checkClientStatus(
     userId: {userId:string}, 
     deleted: boolean, 
@@ -233,7 +242,7 @@ export class ClientsService {
         .andWhere('client.deleted = false')
         .execute();
         
-        const updateClient = this.findOwnClient({ userId: user.userId })
+        const updateClient = this.findOne({ userId: user.userId })
 
       return successResponse('Cliente actualizado correctamente', updateClient)
     } catch (error) {
