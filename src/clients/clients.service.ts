@@ -247,12 +247,13 @@ export class ClientsService {
     const query = this.clientRepository
       .createQueryBuilder('client')
       .leftJoin('client.user', 'user')
-      .where('client.deleted = :deleted', { deleted });
+      .where('client.deleted = :deleted', { deleted }); // Aquí se mantiene la condición de deleted
 
+    // Ahora utilizamos `andWhere()` para añadir más condiciones
     if (target.type === 'userId') {
-      query.where('client.user_id = :value', { value: target.value });
+      query.andWhere('client.user_id = :value', { value: target.value }); // Condición para userId
     } else {
-      query.where('client.id = :value', { value: target.value });
+      query.andWhere('client.id = :value', { value: target.value }); // Condición para clientId
     }
 
     const exists = await query.getExists();
