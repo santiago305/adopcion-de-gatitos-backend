@@ -239,7 +239,7 @@ export class ClientsService {
     // Validar si el cliente existe y no está eliminado
     const exists = await this.clientRepository
       .createQueryBuilder('client')
-      .where(`client.${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
+      .where(`${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
         value: condition.value,
       })
       .andWhere('client.deleted = false')
@@ -256,14 +256,18 @@ export class ClientsService {
           birth_date: dto.birth_date,
           gender: dto.gender,
         })
-        .where(`client.${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
+        .where(`${condition.type === 'userId' ? 'user_id' : 'id'} = :value`, {
           value: condition.value,
         })
         .andWhere('deleted = false')
         .execute();
 
       // Reutilizar getClientData con el mismo tipo y valor
-      return this.getClientData(condition.type, condition.value);
+      const ClientUpdate = await this.getClientData(condition.type, condition.value);
+      if (isErrorResponse(ClientUpdate)) {
+        return errorResponse('Error al obtener los datos del cliente actualizado');
+      }
+      return successResponse('Cliente actualizado correctamente', ClientUpdate.data);
     } catch (error) {
       console.error('[ClientsService][updateClient] Error al actualizar:', error);
       return errorResponse('Hubo un error al actualizar el cliente');
