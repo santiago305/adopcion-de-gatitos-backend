@@ -73,13 +73,6 @@ export class ClientsController {
     return this.clientsService.findOne(user);
   }
 
-  @Get('check-existing-clients/me')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.USER)
-  checkExistingClients(@CurrentUser() user: { userId: string }) {
-    return this.clientsService.isClientExist(user.userId);
-  }
-
   @Get('search/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
@@ -101,26 +94,45 @@ export class ClientsController {
     return this.clientsService.updateByClientId(clientId, dto);
   }
 
+
+  @Get('check-active/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR, RoleType.USER)
+  async checkClientActive(@Param('id') clientId: string) {
+    const target = { type: 'clientId' as 'userId' | 'clientId', value: clientId }; // Especificamos 'clientId' como tipo
+    return this.clientsService.isClientActive(target);
+  }
+
+  // Controlador para verificar si el cliente está eliminado
+  @Get('check-deleted/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN, RoleType.MODERATOR, RoleType.USER)
+  async checkClientDeleted(@Param('id') clientId: string) {
+    const target = { type: 'clientId' as 'userId' | 'clientId', value: clientId }; // Especificamos 'clientId' como tipo
+    return this.clientsService.isClientDeleted(target);
+  }
+
+
+// Eliminar o restaurar la cuenta de un usuario o cliente
   @Patch('remove/me')
   @UseGuards(JwtAuthGuard)
   @Roles(RoleType.USER)
-  removeOwn(@CurrentUser() user: any) {
-    return this.clientsService.remove(user);
+  removeOwn(@CurrentUser() user: { userId: string }) {
+    return this.clientsService.remove(user); // Aquí se pasa el `userId` del usuario logueado
   }
 
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  removeById(@Param('id') clientId: string, @CurrentUser() user: any) {
-    return this.clientsService.remove(user, clientId);
+  removeById(@Param('id') clientId: string, @CurrentUser() user: { userId: string }) {
+    return this.clientsService.remove(user, clientId); // Aquí se pasa el `clientId` del cliente a eliminar
   }
 
+  // Restaurar la cuenta de un cliente (solo administradores)
   @Patch('restore/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN, RoleType.MODERATOR)
-  restore(@Param('id') clientId: string, @CurrentUser() user: any) {
-    return this.clientsService.restore(user, clientId);
+  @Roles(RoleType.ADMIN)
+  restore(@Param('id') clientId: string, @CurrentUser() user: { userId: string }) {
+    return this.clientsService.restore(user, clientId); // Restaurar la cuenta de un cliente especificado por `clientId`
   }
-
-
 }
