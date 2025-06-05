@@ -115,15 +115,16 @@ export class RolesService {
     return await this.checkRoleStatus(id, true, 'Ese rol todavia no ha sido eliminado')
   }
 
-  async isRoleExisting (id: string){
+  async isRoleExisting(description: string) {
     const isRoleExisting = await this.roleRepository
-    .createQueryBuilder('role')
-    .where('role.id = :id', { id })
-    .andWhere('role.deleted = false')
-    .getExists()
+      .createQueryBuilder('role')
+      .where('role.description = :description', { description })
+      .andWhere('role.deleted = false')
+      .getExists();
 
     return isRoleExisting;
   }
+
   /**
    * Actualiza un rol existente por ID.
    *
