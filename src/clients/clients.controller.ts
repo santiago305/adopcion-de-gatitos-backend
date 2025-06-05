@@ -118,21 +118,22 @@ export class ClientsController {
   @UseGuards(JwtAuthGuard)
   @Roles(RoleType.USER)
   removeOwn(@CurrentUser() user: { userId: string }) {
-    return this.clientsService.remove(user); // Aquí se pasa el `userId` del usuario logueado
+    return this.clientsService.remove(user); // El usuario solo puede eliminar su propia cuenta
   }
 
+  // Ruta para que un admin o moderador elimine un cliente por id
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
   removeById(@Param('id') clientId: string, @CurrentUser() user: { userId: string }) {
-    return this.clientsService.remove(user, clientId); // Aquí se pasa el `clientId` del cliente a eliminar
+    return this.clientsService.remove(user, clientId); // Admin/Moderador puede eliminar cualquier cliente
   }
 
-  // Restaurar la cuenta de un cliente (solo administradores)
+  // Ruta para restaurar la cuenta de un cliente eliminado (solo admins)
   @Patch('restore/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
   restore(@Param('id') clientId: string, @CurrentUser() user: { userId: string }) {
-    return this.clientsService.restore(user, clientId); // Restaurar la cuenta de un cliente especificado por `clientId`
+    return this.clientsService.restore(user, clientId); // Solo admin puede restaurar la cuenta de un cliente eliminado
   }
 }
