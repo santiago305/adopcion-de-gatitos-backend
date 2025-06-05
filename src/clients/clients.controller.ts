@@ -101,22 +101,6 @@ export class ClientsController {
     return this.clientsService.updateByClientId(clientId, dto);
   }
 
-
-  @Get('checkClientStatus/active')
-  @UseGuards(JwtAuthGuard)
-  @Roles(RoleType.USER)
-  checkClientStatusTrue(@CurrentUser() user: { userId: string }) {
-    const target: { type: 'userId'; value: string } = { type: 'userId', value: user.userId };
-    return this.clientsService.isClientActive(target);
-  }
-  @Get('checkClientStatus/remove')
-  @UseGuards(JwtAuthGuard)
-  @Roles(RoleType.USER)
-  checkClientStatusFalse(@CurrentUser() user: { userId: string }) {
-    const target: { type: 'userId'; value: string } = { type: 'userId', value: user.userId };
-    return this.clientsService.isClientDeleted(target);
-  }
-
   @Patch('remove/me')
   @UseGuards(JwtAuthGuard)
   @Roles(RoleType.USER)

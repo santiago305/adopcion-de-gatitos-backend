@@ -175,7 +175,7 @@ export class ClientsService {
 
     const client = await query.getRawOne();
 
-    if (!client) return errorResponse('Cliente no encontrado');
+    if (!client) throw new BadRequestException('Cliente no encontrado');
 
     return successResponse('Cliente encontrado', client);
   }
@@ -271,13 +271,13 @@ export class ClientsService {
   }
 
   async isClientExist( userId: string ): Promise<boolean> {
-  const exists = await this.clientRepository
-    .createQueryBuilder('client')
-    .leftJoin('client.user', 'user')
-    .where('user.id = :userId', { userId })
-    .getExists();
-  return exists; 
-}
+    const exists = await this.clientRepository
+      .createQueryBuilder('client')
+      .leftJoin('client.user', 'user')
+      .where('user.id = :userId', { userId })
+      .getExists();
+    return exists; 
+  }
 
 // FUTURO:
 // En caso se agregue un campo booleano como `canBeEditedByAdmin` en la entidad Client,
@@ -287,69 +287,192 @@ export class ClientsService {
 // if (!client.canBeEditedByAdmin) return errorResponse('No se permite modificar este cliente');
 
 
-
   private async toggleDelete(
-    deleter: { userId: string; rol: RoleType; user_name: string },
+    user: { userId:string },
     target: { type: 'userId' | 'clientId'; value: string },
     deleted: boolean
   ): Promise<SuccessResponse | ErrorResponse> {
-    // Validar existencia del cliente
-    const statusCheck = await this.checkClientStatus(target, !deleted, deleted
-      ? 'El cliente no se encuentra o ya está eliminado'
-      : 'El cliente no se encuentra o ya está activo');
+    // Validar existencia del usuario tanto sea administrador, moderador o usuario
+    const requester = await this.userService.findOne(user.userId);
+    if (isErrorResponse(requester)) throw new BadRequestException(requester.message);
 
-    if (isErrorResponse(statusCheck)) return statusCheck;
+    if (requester.data.rol === RoleType.USER) {
+      await this.userService.isUserActive(user.userId);
 
-    try {
-      await this.clientRepository
-        .createQueryBuilder()
-        .update(Client)
-        .set({ deleted })
-        .where(`${target.type === 'userId' ? 'user_id' : 'id'} = :value`, { value: target.value })
-        .execute();
+      const exists = await this.isClientExist(user.userId);
+      if (!exists) throw new BadRequestException('No existe un registro de ese cliente');
 
-      // Obtener información del cliente afectado
-      const client = await this.getClientData(target.type, target.value);
+      const client = await this.getClientData('userId', user.userId);
       if (isErrorResponse(client)) return client;
 
-      // Construir mensaje
-      const clientName = client.data.name;
-      let message = '';
+      if (!deleted) {
+        const clientActive = await this.isClientActive({ type: 'userId', value: user.userId })
+        if(isErrorResponse(clientActive)) return clientActive
+        try {
+          await this.clientRepository
+          .createQueryBuilder()
+          .update(Client)
+          .set({ deleted }) // Cambia el estado de deleted según lo que se pase
+          .where(`user_id = :value`, { value: target.value })
+          .execute();
+          
 
-      if (deleter.rol === RoleType.USER) {
-        message = deleted
-          ? 'Hemos eliminado tu cuenta correctamente'
-          : 'Hemos restaurado tu cuenta correctamente';
-      } else {
-        const roleLabel = deleter.rol === RoleType.ADMIN ? 'Administrador' : 'Moderador';
-        message = deleted
-          ? `${roleLabel} ${deleter.user_name} eliminó al cliente ${clientName}`
-          : `${roleLabel} ${deleter.user_name} restauró al cliente ${clientName}`;
+          const userDelete =await this.userService.remove(user.userId)
+          if(isErrorResponse(userDelete)) return userDelete
+
+          return successResponse('has eliminado tu cuenta correctamente')
+        } catch (error) {
+          console.error('[ClientsService][toggleDelete] Error:', error);
+          throw new BadRequestException ('Hubo un error al procesar la solicitud');
+        }
+      } 
+
+    } 
+    // Si es ADMIN o MODERATOR, debe existir el cliente
+    const clientExisting =  await this.isClientExist(target.value)
+    if(!clientExisting)  throw new BadRequestException('No hay registro de este cliente')
+    
+    if (!deleted){
+      const clientActive = await this.isClientActive({ type: 'clientId',  value:target.value})
+      if(isErrorResponse(clientActive)) throw new BadRequestException (clientActive.message)
+      
+      try {
+          const client = await this.clientRepository
+          .createQueryBuilder('client')
+          .leftJoin('client.user', 'user')
+          .select([
+            'user.name AS name',
+            'client.user_id AS userId',
+          ])
+          .where('client.id = :id', { value: target.value} )
+          .getRawOne()
+
+          await this.clientRepository
+          .createQueryBuilder()
+          .update(Client)
+          .set({ deleted }) // Cambia el estado de deleted según lo que se pase
+          .where(`id = :value`, { value: target.value })
+          .execute();
+          
+
+          const userDelete =await this.userService.remove(client.userId)
+          if(isErrorResponse(userDelete)) return userDelete
+
+          return successResponse(`has eliminado la cuenta de ${client.name} correctamente`)
+        } catch (error) {
+          console.error('[ClientsService][toggleDelete] Error:', error);
+          throw new BadRequestException ('Hubo un error al procesar la solicitud');
+        }
+      
+    }
+    const clientRemove = await this.isClientDeleted({ type: 'clientId',  value:target.value})
+    if(isErrorResponse(clientRemove)) throw new BadRequestException (clientRemove.message)
+    
+    try {
+        const client = await this.clientRepository
+        .createQueryBuilder('client')
+        .leftJoin('client.user', 'user')
+        .select([
+          'user.name AS name',
+          'client.user_id AS userId',
+        ])
+        .where('client.id = :id', { value: target.value} )
+        .getRawOne()
+
+        await this.clientRepository
+        .createQueryBuilder()
+        .update(Client)
+        .set({ deleted }) // Cambia el estado de deleted según lo que se pase
+        .where(`id = :value`, { value: target.value })
+        .execute();
+        
+
+        const userRestore =await this.userService.restore(client.userId)
+        if(isErrorResponse(userRestore)) return userRestore
+
+        return successResponse(`has restaurado la cuenta de ${client.name} correctamente`)
+      } catch (error) {
+        console.error('[ClientsService][toggleDelete] Error:', error);
+        throw new BadRequestException ('Hubo un error al procesar la solicitud');
       }
-
-      return successResponse(message);
-    } catch (error) {
-      console.error('[ClientsService][toggleDeleteFlexible] Error:', error);
-      return errorResponse('Hubo un error al procesar la solicitud');
-    }
+  }
+  async remove(user: { userId: string }, clientId?: string): Promise<SuccessResponse | ErrorResponse> {
+    const target = { type: 'userId' as 'userId' | 'clientId', value: clientId ? clientId : user.userId };
+    
+    // Llamamos a la función toggleDelete para eliminar la cuenta
+    return this.toggleDelete(user, target, true); // `true` indica que se va a eliminar
   }
 
-  async remove(currentUser: { userId: string; rol: RoleType; user_name: string }, clientId?: string) {
+  async restore(user: { userId: string }, clientId: string): Promise<SuccessResponse | ErrorResponse> {
+    const target = { type: 'clientId' as 'userId' | 'clientId', value: clientId };
 
-    const target: { type: 'userId' | 'clientId'; value: string } = currentUser.rol === RoleType.USER
-    ? { type: 'userId', value: currentUser.userId }
-    : { type: 'clientId', value: clientId! };
-
-
-    return this.toggleDelete(currentUser, target, true);
+    // Llamamos a la función toggleDelete para restaurar la cuenta
+    return this.toggleDelete(user, target, false); // `false` indica que se va a restaurar
   }
 
-  async restore(currentUser: { userId: string; rol: RoleType; user_name: string }, clientId: string) {
-    if (currentUser.rol === RoleType.USER) {
-      return errorResponse('No tienes permisos para restaurar clientes');
-    }
 
-    return this.toggleDelete(currentUser, { type: 'clientId', value: clientId }, false);
-  }
+  // private async toggleDelete(
+  //   deleter: { userId: string; rol: RoleType; user_name: string },
+  //   target: { type: 'userId' | 'clientId'; value: string },
+  //   deleted: boolean
+  // ): Promise<SuccessResponse | ErrorResponse> {
+  //   // Validar existencia del cliente
+  //   const statusCheck = await this.checkClientStatus(target, !deleted, deleted
+  //     ? 'El cliente no se encuentra o ya está eliminado'
+  //     : 'El cliente no se encuentra o ya está activo');
+
+  //   if (isErrorResponse(statusCheck)) return statusCheck;
+
+  //   try {
+  //     await this.clientRepository
+  //       .createQueryBuilder()
+  //       .update(Client)
+  //       .set({ deleted })
+  //       .where(`${target.type === 'userId' ? 'user_id' : 'id'} = :value`, { value: target.value })
+  //       .execute();
+
+  //     // Obtener información del cliente afectado
+  //     const client = await this.getClientData(target.type, target.value);
+  //     if (isErrorResponse(client)) return client;
+
+  //     // Construir mensaje
+  //     const clientName = client.data.name;
+  //     let message = '';
+
+  //     if (deleter.rol === RoleType.USER) {
+  //       message = deleted
+  //         ? 'Hemos eliminado tu cuenta correctamente'
+  //         : 'Hemos restaurado tu cuenta correctamente';
+  //     } else {
+  //       const roleLabel = deleter.rol === RoleType.ADMIN ? 'Administrador' : 'Moderador';
+  //       message = deleted
+  //         ? `${roleLabel} ${deleter.user_name} eliminó al cliente ${clientName}`
+  //         : `${roleLabel} ${deleter.user_name} restauró al cliente ${clientName}`;
+  //     }
+
+  //     return successResponse(message);
+  //   } catch (error) {
+  //     console.error('[ClientsService][toggleDeleteFlexible] Error:', error);
+  //     return errorResponse('Hubo un error al procesar la solicitud');
+  //   }
+  // }
+
+  // async remove(currentUser: { userId: string; rol: RoleType; user_name: string }, clientId?: string) {
+
+  //   const target: { type: 'userId' | 'clientId'; value: string } = currentUser.rol === RoleType.USER
+  //   ? { type: 'userId', value: currentUser.userId }
+  //   : { type: 'clientId', value: clientId! };
+
+
+  //   return this.toggleDelete(currentUser, target, true);
+  // }
+
+  // async restore(currentUser: { userId: string; rol: RoleType; user_name: string }, clientId: string) {
+  //   if (currentUser.rol === RoleType.USER) {
+  //     return errorResponse('No tienes permisos para restaurar clientes');
+  //   }
+
+  //   return this.toggleDelete(currentUser, { type: 'clientId', value: clientId }, false);
+  // }
 
 }
