@@ -288,114 +288,80 @@ export class ClientsService {
 
 
   private async toggleDelete(
-    user: { userId:string },
-    target: { type: 'userId' | 'clientId'; value: string },
-    deleted: boolean
-  ): Promise<SuccessResponse | ErrorResponse> {
-    // Validar existencia del usuario tanto sea administrador, moderador o usuario
-    const requester = await this.userService.findOne(user.userId);
-    if (isErrorResponse(requester)) throw new BadRequestException(requester.message);
+  user: { userId: string },
+  target: { type: 'userId' | 'clientId'; value: string },
+  deleted: boolean
+): Promise<SuccessResponse | ErrorResponse> {
+  const requester = await this.userService.findOne(user.userId);
+  if (isErrorResponse(requester)) throw new BadRequestException(requester.message);
 
-    if (requester.data.rol === RoleType.USER) {
-      await this.userService.isUserActive(user.userId);
+  // Si el solicitante es USER, solo puede eliminar su propia cuenta
+  if (requester.data.rol === RoleType.USER) {
+    const exists = await this.isClientExist(user.userId);
+    if (!exists) throw new BadRequestException('No existe un registro de este cliente');
 
-      const exists = await this.isClientExist(user.userId);
-      if (!exists) throw new BadRequestException('No existe un registro de ese cliente');
+    const client = await this.getClientData('userId', user.userId);
+    if (isErrorResponse(client)) return client;
 
-      const client = await this.getClientData('userId', user.userId);
-      if (isErrorResponse(client)) return client;
+    if (deleted) {
+      const clientActive = await this.isClientActive({ type: 'userId', value: user.userId });
+      if (isErrorResponse(clientActive)) return clientActive;
 
-      if (!deleted) {
-        const clientActive = await this.isClientActive({ type: 'userId', value: user.userId })
-        if(isErrorResponse(clientActive)) return clientActive
-        try {
-          await this.clientRepository
-          .createQueryBuilder()
-          .update(Client)
-          .set({ deleted }) // Cambia el estado de deleted según lo que se pase
-          .where(`user_id = :value`, { value: target.value })
-          .execute();
-          
-
-          const userDelete =await this.userService.remove(user.userId)
-          if(isErrorResponse(userDelete)) return userDelete
-
-          return successResponse('has eliminado tu cuenta correctamente')
-        } catch (error) {
-          console.error('[ClientsService][toggleDelete] Error:', error);
-          throw new BadRequestException ('Hubo un error al procesar la solicitud');
-        }
-      } 
-
-    } 
-    // Si es ADMIN o MODERATOR, debe existir el cliente
-    const clientExisting =  await this.isClientExist(target.value)
-    if(!clientExisting)  throw new BadRequestException('No hay registro de este cliente')
-    
-    if (!deleted){
-      const clientActive = await this.isClientActive({ type: 'clientId',  value:target.value})
-      if(isErrorResponse(clientActive)) throw new BadRequestException (clientActive.message)
-      
       try {
-          const client = await this.clientRepository
-          .createQueryBuilder('client')
-          .leftJoin('client.user', 'user')
-          .select([
-            'user.name AS name',
-            'client.user_id AS userId',
-          ])
-          .where('client.id = :id', { value: target.value} )
-          .getRawOne()
-
-          await this.clientRepository
+        await this.clientRepository
           .createQueryBuilder()
           .update(Client)
-          .set({ deleted }) // Cambia el estado de deleted según lo que se pase
-          .where(`id = :value`, { value: target.value })
+          .set({ deleted })
+          .where('user_id = :value', { value: target.value })
           .execute();
-          
 
-          const userDelete =await this.userService.remove(client.userId)
-          if(isErrorResponse(userDelete)) return userDelete
+        // Eliminar el usuario si se elimina el cliente
+        const userDelete = await this.userService.remove(user.userId);
+        if (isErrorResponse(userDelete)) return userDelete;
 
-          return successResponse(`has eliminado la cuenta de ${client.name} correctamente`)
-        } catch (error) {
-          console.error('[ClientsService][toggleDelete] Error:', error);
-          throw new BadRequestException ('Hubo un error al procesar la solicitud');
-        }
-      
-    }
-    const clientRemove = await this.isClientDeleted({ type: 'clientId',  value:target.value})
-    if(isErrorResponse(clientRemove)) throw new BadRequestException (clientRemove.message)
-    
-    try {
-        const client = await this.clientRepository
-        .createQueryBuilder('client')
-        .leftJoin('client.user', 'user')
-        .select([
-          'user.name AS name',
-          'client.user_id AS userId',
-        ])
-        .where('client.id = :id', { value: target.value} )
-        .getRawOne()
-
-        await this.clientRepository
-        .createQueryBuilder()
-        .update(Client)
-        .set({ deleted }) // Cambia el estado de deleted según lo que se pase
-        .where(`id = :value`, { value: target.value })
-        .execute();
-        
-
-        const userRestore =await this.userService.restore(client.userId)
-        if(isErrorResponse(userRestore)) return userRestore
-
-        return successResponse(`has restaurado la cuenta de ${client.name} correctamente`)
+        return successResponse('Has eliminado tu cuenta correctamente');
       } catch (error) {
         console.error('[ClientsService][toggleDelete] Error:', error);
-        throw new BadRequestException ('Hubo un error al procesar la solicitud');
+        throw new BadRequestException('Hubo un error al procesar la solicitud');
       }
+    }
   }
+
+  // Si el solicitante es ADMIN o MODERATOR
+  const clientExisting = await this.isClientExist(target.value);
+  if (!clientExisting) throw new BadRequestException('No hay registro de este cliente');
+
+  // Restablecer estado de deleted (restaurar)
+  if (!deleted) {
+    const clientActive = await this.isClientActive({ type: 'clientId', value: target.value });
+    if (isErrorResponse(clientActive)) throw new BadRequestException(clientActive.message);
+
+    try {
+      const client = await this.clientRepository
+        .createQueryBuilder('client')
+        .leftJoin('client.user', 'user')
+        .select(['user.name AS name', 'client.user_id AS userId'])
+        .where('client.id = :id', { value: target.value })
+        .getRawOne();
+
+      await this.clientRepository
+        .createQueryBuilder()
+        .update(Client)
+        .set({ deleted })
+        .where('id = :value', { value: target.value })
+        .execute();
+
+      const userRestore = await this.userService.restore(client.userId);
+      if (isErrorResponse(userRestore)) return userRestore;
+
+      return successResponse(`Has restaurado la cuenta de ${client.name} correctamente`);
+    } catch (error) {
+      console.error('[ClientsService][toggleDelete] Error:', error);
+      throw new BadRequestException('Hubo un error al procesar la solicitud');
+    }
+  }
+}
+
   async remove(user: { userId: string }, clientId?: string): Promise<SuccessResponse | ErrorResponse> {
     const target = { type: 'userId' as 'userId' | 'clientId', value: clientId ? clientId : user.userId };
     
