@@ -42,8 +42,20 @@ export class CharacteristicsService {
     const result = await this.characteristicsRepo
       .createQueryBuilder('characteristics')
       .leftJoinAndSelect('characteristics.personality', 'personality')
+      .select([
+        'characteristics.id AS id',
+        'characteristics.color AS color',
+        'characteristics.size AS size',
+        'characteristics.weight AS weight',
+        'characteristics.fur AS fur',
+        'characteristics.sex AS sex',
+        'characteristics.age AS age',
+        'characteristics.sterilized AS sterilized',
+        'characteristics.deleted AS deleted',
+        'personality.name AS personality',
+      ])
       .where('characteristics.deleted = false')
-      .getMany();
+      .getRawMany();
 
     return successResponse('Características activas encontradas', result);
   }
@@ -52,31 +64,34 @@ export class CharacteristicsService {
     const result = await this.characteristicsRepo
       .createQueryBuilder('characteristics')
       .leftJoinAndSelect('characteristics.personality', 'personality')
+      .select([
+        'characteristics.id AS id',
+        'characteristics.color AS color',
+        'characteristics.size AS size',
+        'characteristics.weight AS weight',
+        'characteristics.fur AS fur',
+        'characteristics.sex AS sex',
+        'characteristics.age AS age',
+        'characteristics.sterilized AS sterilized',
+        'characteristics.deleted AS deleted',
+        'personality.name AS personality',
+      ])
       .where('characteristics.id = :id', { id })
       .andWhere('characteristics.deleted = false')
-      .getOne();
+      .getRawOne();
 
     if (!result) return errorResponse('No se encontraron las características');
 
     return successResponse('Características encontradas', result);
   }
 
-  async update(id: string, dto: UpdateCharacteristicDto
-  ) {
+  async update(id: string, dto: UpdateCharacteristicDto) {
     await this.findOne(id);
+
     try {
-      const updateData: Partial<Characteristics> = {
-        color: dto.color,
-        size: dto.size,
-        weight: dto.weight,
-        fur: dto.fur,
-        sex: dto.sex,
-        age: dto.age,
-        sterilized: dto.sterilized,
-      };
-      if (dto.personalityId) {
-        updateData.personalityId = dto.personalityId;
-      }
+      const updateData = Object.entries(dto)
+        .filter(([_, value]) => value !== undefined)
+        .reduce((acc, [key, value]) => ({ ...acc, [key]: value }), {});
 
       await this.characteristicsRepo
         .createQueryBuilder()
@@ -117,8 +132,8 @@ export class CharacteristicsService {
     return this.toggleDelete(
       id,
       true,
-      'Características desactivadas',
-      'No se pudieron desactivar las características',
+      'Características elimindas',
+      'No se pudieron eliminar las características',
     );
   }
 
@@ -126,8 +141,8 @@ export class CharacteristicsService {
     return this.toggleDelete(
       id,
       false,
-      'Características reactivadas',
-      'No se pudieron reactivar las características',
+      'Características restauradas',
+      'No se pudieron restaurar las características',
     );
   }
 }
