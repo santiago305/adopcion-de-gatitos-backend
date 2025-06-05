@@ -121,7 +121,6 @@ export class ClientsController {
     return this.clientsService.remove(user); // El usuario solo puede eliminar su propia cuenta
   }
 
-  // Ruta para que un admin o moderador elimine un cliente por id
   @Patch('remove/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN, RoleType.MODERATOR)
@@ -129,7 +128,6 @@ export class ClientsController {
     return this.clientsService.remove(user, clientId); // Admin/Moderador puede eliminar cualquier cliente
   }
 
-  // Ruta para restaurar la cuenta de un cliente eliminado (solo admins)
   @Patch('restore/:id')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.ADMIN)
