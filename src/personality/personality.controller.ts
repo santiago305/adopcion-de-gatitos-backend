@@ -8,42 +8,37 @@ import { Roles } from 'src/common/decorators';
 import { RoleType } from 'src/common/constants';
 
 @Controller('personality')
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(RoleType.ADMIN)
 export class PersonalityController {
   constructor(private readonly personalityService: PersonalityService) {}
 
   @Post('create')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
   create(@Body() dto: CreatePersonalityDto) {
     return this.personalityService.create(dto);
   }
 
   @Get('findAll')
-  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.personalityService.findAll();
   }
 
   @Get('search/:id')
-  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.personalityService.findOne(id);
   }
 
   @Patch('update/:id')
-  @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdatePersonalityDto) {
     return this.personalityService.update(id, dto);
   }
 
-  @Patch('delete/:id')
-  @UseGuards(JwtAuthGuard)
+  @Patch('remove/:id')
   remove(@Param('id') id: string) {
     return this.personalityService.remove(id);
   }
 
   @Patch('restore/:id')
-  @UseGuards(JwtAuthGuard)
   restore(@Param('id') id: string) {
     return this.personalityService.restore(id);
   }

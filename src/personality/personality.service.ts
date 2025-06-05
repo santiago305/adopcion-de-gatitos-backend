@@ -83,10 +83,10 @@ export class PersonalityService {
   }
 
   async remove(id: string) {
-    return this.toggleDelete(id, true, 'Personalidad desactivada', 'No se pudo desactivar la personalidad');
+    return this.toggleDelete(id, true, 'Personalidad eliminada', 'No se pudo eliminar la personalidad');
   }
 
   async restore(id: string) {
-    return this.toggleDelete(id, false, 'Personalidad reactivada', 'No se pudo reactivar la personalidad');
+    return this.toggleDelete(id, false, 'Personalidad restaurada', 'No se pudo restaurar la personalidad');
   }
 }
