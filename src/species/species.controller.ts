@@ -27,31 +27,32 @@ export class SpeciesController {
   }
 
   @Get('findAll')
-  @UseGuards(JwtAuthGuard)
   findAll() {
     return this.speciesService.findAll();
   }
 
   @Get('search/:id')
-  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.speciesService.findOne(id);
   }
 
   @Patch('update/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   update(@Param('id') id: string, @Body() dto: UpdateSpeciesDto) {
     return this.speciesService.update(id, dto);
   }
 
-  @Patch('delete/:id')
-  @UseGuards(JwtAuthGuard)
+  @Patch('remove/:id')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   remove(@Param('id') id: string) {
     return this.speciesService.remove(id);
   }
 
   @Patch('restore/:id')
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.ADMIN)
   restore(@Param('id') id: string) {
     return this.speciesService.restore(id);
   }

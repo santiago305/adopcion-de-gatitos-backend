@@ -92,8 +92,8 @@ export class SpeciesService {
     return this.toggleDelete(
       id,
       true,
-      'Especie desactivada',
-      'No se pudo desactivar la especie',
+      'Especie eliminada',
+      'No se pudo eliminar la especie',
     );
   }
 
@@ -101,8 +101,8 @@ export class SpeciesService {
     return this.toggleDelete(
       id,
       false,
-      'Especie reactivada',
-      'No se pudo reactivar la especie',
+      'Especie restaurada',
+      'No se pudo restaurar la especie',
     );
   }
 }
