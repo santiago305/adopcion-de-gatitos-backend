@@ -32,6 +32,7 @@ export class SpeciesService {
   async findAll() {
     const result = await this.speciesRepo
       .createQueryBuilder('species')
+      
       .where('species.deleted = false')
       .getMany();
 

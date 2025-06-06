@@ -1,4 +1,11 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateBreedDto } from './create-breed.dto';
+import { IsOptional, IsString } from 'class-validator';
 
-export class UpdateBreedDto extends PartialType(CreateBreedDto) {}
+export class UpdateBreedDto {
+  @IsOptional()
+  @IsString({ message: 'El nombre de la raza debe ser un texto' })
+  name?: string;
+
+  @IsOptional()
+  @IsString({ message: 'El ID de especie debe ser un texto' })
+  speciesId?: string;
+}

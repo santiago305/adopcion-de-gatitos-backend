@@ -44,7 +44,7 @@ export class BreedController {
     return this.breedService.update(id, dto);
   }
 
-  @Patch('delete/:id')
+  @Patch('remove/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.breedService.remove(id);

@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Breed } from './entities/breed.entity';
@@ -12,8 +12,18 @@ export class BreedService {
     @InjectRepository(Breed)
     private readonly breedRepo: Repository<Breed>,
   ) {}
+    async isBreedExisting(name: string) {
+    const result = await this.breedRepo
+      .createQueryBuilder('breed')
+      .where('LOWER(breed.name) = LOWER(:name)', { name })
+      .getOne();
+
+    return result;
+  }
 
   async create(dto: CreateBreedDto) {
+    const breedExisting = await this.isBreedExisting(dto.name)
+    if(breedExisting) throw new BadRequestException('Esta raza ya esta registrada')
     try {
       await this.breedRepo
         .createQueryBuilder()
@@ -35,20 +45,31 @@ export class BreedService {
   async findAll() {
     const result = await this.breedRepo
       .createQueryBuilder('breed')
-      .leftJoinAndSelect('breed.species', 'species')
+      .leftJoin('breed.species', 'species')
+      .select([
+        'breed.id AS id',
+        'breed.name AS raza',
+        'species.name AS especie',
+      ])
       .where('breed.deleted = false')
-      .getMany();
+      .getRawMany();
 
     return successResponse('Razas activas encontradas', result);
-  }
+}
+
 
   async findOne(id: string) {
     const result = await this.breedRepo
       .createQueryBuilder('breed')
       .leftJoinAndSelect('breed.species', 'species')
+      .select([
+        'breed.id AS id',
+        'breed.name AS raza',
+        'species.name AS especie',
+      ])
       .where('breed.id = :id', { id })
       .andWhere('breed.deleted = false')
-      .getOne();
+      .getRawOne();
 
     if (!result) return errorResponse('No se encontró la raza');
 
@@ -57,13 +78,20 @@ export class BreedService {
 
   async update(id: string, dto: UpdateBreedDto) {
     await this.findOne(id);
-    try {
-      const updateData: Partial<Breed> = {
-        name: dto.name,
-      };
 
-      if (dto.speciesId) {
+    try {
+      const updateData: Partial<Breed> = {};
+
+      if (dto.name !== undefined) {
+        updateData.name = dto.name;
+      }
+
+      if (dto.speciesId !== undefined) {
         updateData.speciesId = dto.speciesId;
+      }
+
+      if (Object.keys(updateData).length === 0) {
+        throw new BadRequestException('Debes enviar al menos un campo para actualizar');
       }
 
       await this.breedRepo
@@ -105,8 +133,8 @@ export class BreedService {
     return this.toggleDelete(
       id,
       true,
-      'Raza desactivada',
-      'No se pudo desactivar la raza',
+      'Raza eliminada correctamente',
+      'No se pudo eliminar la raza',
     );
   }
 
@@ -114,8 +142,8 @@ export class BreedService {
     return this.toggleDelete(
       id,
       false,
-      'Raza reactivada',
-      'No se pudo reactivar la raza',
+      'Raza restaurada correctamente',
+      'No se pudo restaurar la raza',
     );
   }
 }
