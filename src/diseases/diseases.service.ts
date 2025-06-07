@@ -14,6 +14,9 @@ export class DiseasesService {
   ) {}
 
   async create(dto: CreateDiseasesDto) {
+    const exists = await this.isDiseaseExisting(dto.name ?? 'ninguno');
+    if (exists) return errorResponse('La enfermedad ya existe');
+    
     try {
       await this.diseasesRepo
         .createQueryBuilder()
@@ -32,11 +35,17 @@ export class DiseasesService {
     }
   }
 
+
   async findAll() {
     const result = await this.diseasesRepo
       .createQueryBuilder('disease')
+      .select([
+        'disease.id AS id',
+        'disease.name As diseases',
+        'disease.severity AS severity'
+      ])
       .where('disease.deleted = false')
-      .getMany();
+      .getRawMany();
 
     return successResponse('Enfermedades activas encontradas', result);
   }
@@ -44,9 +53,14 @@ export class DiseasesService {
   async findOne(id: string) {
     const result = await this.diseasesRepo
       .createQueryBuilder('disease')
+      .select([
+        'disease.id AS id',
+        'disease.name As diseases',
+        'disease.severity AS severity'
+      ])
       .where('disease.id = :id', { id })
       .andWhere('disease.deleted = false')
-      .getOne();
+      .getRawOne();
 
     if (!result) return errorResponse('No se encontró la enfermedad');
 
@@ -99,8 +113,8 @@ export class DiseasesService {
     return this.toggleDelete(
       id,
       true,
-      'Enfermedad desactivada',
-      'No se pudo desactivar la enfermedad',
+      'Enfermedad eliminada correctamente',
+      'No se pudo eliminar la enfermedad',
     );
   }
 
@@ -108,8 +122,17 @@ export class DiseasesService {
     return this.toggleDelete(
       id,
       false,
-      'Enfermedad reactivada',
-      'No se pudo reactivar la enfermedad',
+      'Enfermedad restaurada correctamente',
+      'No se pudo restaurar la enfermedad',
     );
+  }
+
+  async isDiseaseExisting(name: string): Promise<boolean> {
+    const result = await this.diseasesRepo
+      .createQueryBuilder('disease')
+      .where('LOWER(disease.name) = LOWER(:name)', { name })
+      .getExists()
+
+    return result;
   }
 }

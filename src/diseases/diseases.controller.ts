@@ -44,7 +44,7 @@ export class DiseasesController {
     return this.diseasesService.update(id, dto);
   }
 
-  @Patch('delete/:id')
+  @Patch('remove/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.diseasesService.remove(id);
