@@ -48,19 +48,28 @@ export class AnimalsService {
       .leftJoinAndSelect('animals.species', 'species')
       .leftJoinAndSelect('animals.breed', 'breed')
       .leftJoinAndSelect('animals.disease', 'disease')
-      .leftJoinAndSelect('animals.characteristics', 'characteristics')
+      .leftJoinAndSelect('animals.characteristics', 'characteristics') // Se mantiene para incluir las características
+      .leftJoinAndSelect('characteristics.personality', 'personality') // Se agrega la relación con Personality
       .select([
         'animals.id AS id',
         'animals.name AS name',
         'species.name AS species',
         'breed.name AS breed',
         'disease.name AS disease',
+        'disease.severity AS severity', 
         'animals.healthStatus AS healthStatus',
         'animals.entryDate AS entryDate',
         'animals.adopted AS adopted',
         'animals.status AS status',
-        'animals.deleted AS deleted',
         'animals.information AS information',
+        'characteristics.color AS color',
+        'characteristics.size AS size',
+        'characteristics.weight AS weight', 
+        'characteristics.fur AS fur', 
+        'characteristics.sex AS sex',
+        'characteristics.age AS age', 
+        'characteristics.sterilized AS sterilized', 
+        'personality.name AS personalityName',
       ])
       .andWhere('animals.deleted = false')
       .getRawMany();
@@ -74,19 +83,28 @@ export class AnimalsService {
       .leftJoinAndSelect('animals.species', 'species')
       .leftJoinAndSelect('animals.breed', 'breed')
       .leftJoinAndSelect('animals.disease', 'disease')
-      .leftJoinAndSelect('animals.characteristics', 'characteristics')
+      .leftJoinAndSelect('animals.characteristics', 'characteristics') // Se mantiene para incluir las características
+      .leftJoinAndSelect('characteristics.personality', 'personality') // Se agrega la relación con Personality
       .select([
         'animals.id AS id',
         'animals.name AS name',
         'species.name AS species',
         'breed.name AS breed',
         'disease.name AS disease',
+        'disease.severity AS severity', 
         'animals.healthStatus AS healthStatus',
         'animals.entryDate AS entryDate',
         'animals.adopted AS adopted',
         'animals.status AS status',
-        'animals.deleted AS deleted',
         'animals.information AS information',
+        'characteristics.color AS color',
+        'characteristics.size AS size',
+        'characteristics.weight AS weight', 
+        'characteristics.fur AS fur', 
+        'characteristics.sex AS sex',
+        'characteristics.age AS age', 
+        'characteristics.sterilized AS sterilized', 
+        'personality.name AS personalityName',
       ])
       .where('animals.id = :id', { id })
       .andWhere('animals.deleted = false')
