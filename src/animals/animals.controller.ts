@@ -44,7 +44,7 @@ export class AnimalsController {
     return this.animalsService.update(id, dto);
   }
 
-  @Patch('delete/:id')
+  @Patch('remove/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.animalsService.remove(id);

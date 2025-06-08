@@ -1,4 +1,47 @@
-import { PartialType } from '@nestjs/mapped-types';
-import { CreateAnimalsDto } from './create-animal.dto';
+import { IsBoolean, IsDateString, IsOptional, IsString } from "class-validator";
 
-export class UpdateAnimalsDto extends PartialType(CreateAnimalsDto) {}
+export class UpdateAnimalsDto {
+  @IsOptional()
+  @IsString({ message: 'El nombre del animal debe ser un texto.' })
+  name?: string;
+
+  @IsOptional()
+  @IsString({ message: 'El ID de especie debe ser un texto.' })
+  speciesId?: string;
+
+  @IsOptional()
+  @IsString({ message: 'El ID de raza debe ser un texto.' })
+  breedId?: string;
+
+  @IsOptional()
+  @IsString({ message: 'El ID de la enfermedad debe ser un texto.' })
+  diseaseId?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'El estado de salud debe ser un valor booleano.' })
+  healthStatus?: boolean;
+
+  @IsOptional()
+  @IsDateString({}, { message: 'La fecha de ingreso debe ser una fecha válida.' })
+  entryDate?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'El estado de adopción debe ser un valor booleano.' })
+  adopted?: boolean;
+
+  @IsOptional()
+  @IsString({ each: true, message: 'Cada foto debe ser una cadena de texto.' })
+  photos?: string[];
+
+  @IsOptional()
+  @IsString({ message: 'El ID de las características debe ser un texto.' })
+  characteristicsId?: string;
+
+  @IsOptional()
+  @IsString({ message: 'La información del animal debe ser un texto.' })
+  information?: string;
+
+  @IsOptional()
+  @IsBoolean({ message: 'El estado del animal debe ser un valor booleano.' })
+  status?: boolean;
+}

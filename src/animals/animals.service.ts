@@ -49,8 +49,21 @@ export class AnimalsService {
       .leftJoinAndSelect('animals.breed', 'breed')
       .leftJoinAndSelect('animals.disease', 'disease')
       .leftJoinAndSelect('animals.characteristics', 'characteristics')
-      .where('animals.deleted = false')
-      .getMany();
+      .select([
+        'animals.id AS id',
+        'animals.name AS name',
+        'species.name AS species',
+        'breed.name AS breed',
+        'disease.name AS disease',
+        'animals.healthStatus AS healthStatus',
+        'animals.entryDate AS entryDate',
+        'animals.adopted AS adopted',
+        'animals.status AS status',
+        'animals.deleted AS deleted',
+        'animals.information AS information',
+      ])
+      .andWhere('animals.deleted = false')
+      .getRawMany();
 
     return successResponse('Animales activos encontrados', result);
   }
@@ -62,9 +75,22 @@ export class AnimalsService {
       .leftJoinAndSelect('animals.breed', 'breed')
       .leftJoinAndSelect('animals.disease', 'disease')
       .leftJoinAndSelect('animals.characteristics', 'characteristics')
+      .select([
+        'animals.id AS id',
+        'animals.name AS name',
+        'species.name AS species',
+        'breed.name AS breed',
+        'disease.name AS disease',
+        'animals.healthStatus AS healthStatus',
+        'animals.entryDate AS entryDate',
+        'animals.adopted AS adopted',
+        'animals.status AS status',
+        'animals.deleted AS deleted',
+        'animals.information AS information',
+      ])
       .where('animals.id = :id', { id })
       .andWhere('animals.deleted = false')
-      .getOne();
+      .getRawOne();
 
     if (!result) return errorResponse('No se encontró el animal');
 
@@ -128,8 +154,8 @@ export class AnimalsService {
     return this.toggleDelete(
       id,
       true,
-      'Animal desactivado',
-      'No se pudo desactivar el animal',
+      'Animal eliminado correctamente',
+      'No se pudo eliminar el animal',
     );
   }
 
@@ -137,8 +163,8 @@ export class AnimalsService {
     return this.toggleDelete(
       id,
       false,
-      'Animal reactivado',
-      'No se pudo reactivar el animal',
+      'Animal restaurado correctamente',
+      'No se pudo restaurar el animal',
     );
   }
 }
