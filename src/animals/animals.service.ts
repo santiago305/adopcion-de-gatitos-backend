@@ -22,11 +22,9 @@ export class AnimalsService {
         .into(Animals)
         .values({
           name: dto.name,
-          species: { id: dto.speciesId },
           breed: { id: dto.breedId },
           disease: dto.diseaseId ? { id: dto.diseaseId } : null,
           healthStatus: dto.healthStatus,
-          entryDate: dto.entryDate,
           adopted: dto.adopted ?? false,
           photos: dto.photos,
           characteristics: dto.characteristicsId ? { id: dto.characteristicsId } : null,
@@ -45,8 +43,8 @@ export class AnimalsService {
   async findAll() {
     const result = await this.animalsRepo
       .createQueryBuilder('animals')
-      .leftJoinAndSelect('animals.species', 'species')
       .leftJoinAndSelect('animals.breed', 'breed')
+      .leftJoinAndSelect('breed.species', 'species')
       .leftJoinAndSelect('animals.disease', 'disease')
       .leftJoinAndSelect('animals.characteristics', 'characteristics') // Se mantiene para incluir las características
       .leftJoinAndSelect('characteristics.personality', 'personality') // Se agrega la relación con Personality
@@ -58,7 +56,6 @@ export class AnimalsService {
         'disease.name AS disease',
         'disease.severity AS severity', 
         'animals.healthStatus AS healthStatus',
-        'animals.entryDate AS entryDate',
         'animals.adopted AS adopted',
         'animals.status AS status',
         'animals.information AS information',
@@ -70,6 +67,7 @@ export class AnimalsService {
         'characteristics.age AS age', 
         'characteristics.sterilized AS sterilized', 
         'personality.name AS personalityName',
+        'animals.createdAt As createdAt'
       ])
       .andWhere('animals.deleted = false')
       .getRawMany();
@@ -80,8 +78,8 @@ export class AnimalsService {
   async findOne(id: string) {
     const result = await this.animalsRepo
       .createQueryBuilder('animals')
-      .leftJoinAndSelect('animals.species', 'species')
       .leftJoinAndSelect('animals.breed', 'breed')
+      .leftJoinAndSelect('breed.species', 'species')
       .leftJoinAndSelect('animals.disease', 'disease')
       .leftJoinAndSelect('animals.characteristics', 'characteristics') // Se mantiene para incluir las características
       .leftJoinAndSelect('characteristics.personality', 'personality') // Se agrega la relación con Personality
@@ -93,7 +91,6 @@ export class AnimalsService {
         'disease.name AS disease',
         'disease.severity AS severity', 
         'animals.healthStatus AS healthStatus',
-        'animals.entryDate AS entryDate',
         'animals.adopted AS adopted',
         'animals.status AS status',
         'animals.information AS information',
@@ -105,6 +102,7 @@ export class AnimalsService {
         'characteristics.age AS age', 
         'characteristics.sterilized AS sterilized', 
         'personality.name AS personalityName',
+        'animals.createdAt As createdAt'
       ])
       .where('animals.id = :id', { id })
       .andWhere('animals.deleted = false')
@@ -121,14 +119,12 @@ export class AnimalsService {
       const updateData: Partial<Animals> = {
         name: dto.name,
         healthStatus: dto.healthStatus,
-        entryDate: dto.entryDate,
         adopted: dto.adopted,
         photos: dto.photos,
         information: dto.information,
         status: dto.status,
       };
 
-      if (dto.speciesId) updateData.species = { id: dto.speciesId } as any;
       if (dto.breedId) updateData.breed = { id: dto.breedId } as any;
       if (dto.diseaseId) updateData.disease = { id: dto.diseaseId } as any;
       if (dto.characteristicsId) updateData.characteristics = { id: dto.characteristicsId } as any;

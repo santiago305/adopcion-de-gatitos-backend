@@ -1,13 +1,9 @@
-import { IsBoolean, IsDateString, IsOptional, IsString } from "class-validator";
+import { IsBoolean, IsOptional, IsString } from "class-validator";
 
 export class UpdateAnimalsDto {
   @IsOptional()
   @IsString({ message: 'El nombre del animal debe ser un texto.' })
   name?: string;
-
-  @IsOptional()
-  @IsString({ message: 'El ID de especie debe ser un texto.' })
-  speciesId?: string;
 
   @IsOptional()
   @IsString({ message: 'El ID de raza debe ser un texto.' })
@@ -20,10 +16,6 @@ export class UpdateAnimalsDto {
   @IsOptional()
   @IsBoolean({ message: 'El estado de salud debe ser un valor booleano.' })
   healthStatus?: boolean;
-
-  @IsOptional()
-  @IsDateString({}, { message: 'La fecha de ingreso debe ser una fecha válida.' })
-  entryDate?: string;
 
   @IsOptional()
   @IsBoolean({ message: 'El estado de adopción debe ser un valor booleano.' })

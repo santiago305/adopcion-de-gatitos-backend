@@ -1,13 +1,9 @@
-import { IsDateString, IsNotEmpty, IsOptional, IsString } from "class-validator";
+import { IsNotEmpty, IsOptional, IsString } from "class-validator";
 
 export class CreateAnimalsDto {
   @IsString({ message: 'El nombre del animal debe ser un texto.' })
   @IsNotEmpty({ message: 'El nombre del animal es obligatorio.' })
   name: string;
-
-  @IsString({ message: 'El ID de especie debe ser un texto.' })
-  @IsNotEmpty({ message: 'La especie es obligatoria.' })
-  speciesId: string;
 
   @IsString({ message: 'El ID de raza debe ser un texto.' })
   @IsNotEmpty({ message: 'La raza es obligatoria.' })
@@ -19,10 +15,6 @@ export class CreateAnimalsDto {
 
   @IsNotEmpty({ message: 'El estado de salud es obligatorio.' })
   healthStatus: boolean;
-
-  @IsNotEmpty({ message: 'La fecha de ingreso es obligatoria.' })
-  @IsDateString()
-  entryDate: string;
 
   @IsNotEmpty({ message: 'El estado de adopción es obligatorio.' })
   adopted: boolean;

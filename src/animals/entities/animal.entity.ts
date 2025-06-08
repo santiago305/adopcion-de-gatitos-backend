@@ -1,8 +1,7 @@
 import { Breed } from 'src/breed/entities/breed.entity';
 import { Characteristics } from 'src/characteristics/entities/characteristic.entity';
 import { Diseases } from 'src/diseases/entities/disease.entity';
-import { Species } from 'src/species/entities/species.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 
 @Entity('animals')
@@ -13,9 +12,6 @@ export class Animals {
   @Column()
   name: string;
 
-  @ManyToOne(() => Species)
-  species: Species;
-
   @ManyToOne(() => Breed)
   breed: Breed;
 
@@ -24,9 +20,6 @@ export class Animals {
 
   @Column({ name: 'health_status', type: 'boolean', nullable: true })
   healthStatus: boolean;
-
-  @Column({ name: 'entry_date', type: 'date', nullable: true })
-  entryDate: string;
 
   @Column({ default: false })
   adopted: boolean;
@@ -45,4 +38,11 @@ export class Animals {
 
   @Column({ default: false })
   deleted: boolean;
+
+  
+  @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  createdAt: Date;
+
+  @UpdateDateColumn({ name: 'updated_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
+  updatedAt: Date;
 }
