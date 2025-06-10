@@ -83,11 +83,10 @@ export class UsersService {
     .createQueryBuilder('user')
     .leftJoin('user.role', 'role')
     .select([
-      'user.id',
-      'user.name',
-      'user.email',
+      'user.id AS id',
+      'user.name AS name',
+      'user.email AS email',
       'role.description AS rol',
-      'user.deleted',
     ])
     .where('user.deleted = :deleted', { deleted: false })
     .andWhere('user.id = :id', { id })
