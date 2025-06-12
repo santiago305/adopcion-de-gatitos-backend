@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { BreedService } from './breed.service';
 import { CreateBreedDto } from './dto/create-breed.dto';
@@ -28,8 +29,14 @@ export class BreedController {
 
   @Get('findAll')
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.breedService.findAll();
+  findAll(@Query('page') page = 1, @Query('limit') limit = 15) {
+    return this.breedService.findAll(Number(page), Number(limit));
+  }
+
+  @Get('searchByName')
+  @UseGuards(JwtAuthGuard)
+  findByName(@Query('name') name: string) {
+    return this.breedService.findByName(name);
   }
 
   @Get('search/:id')
@@ -44,7 +51,7 @@ export class BreedController {
     return this.breedService.update(id, dto);
   }
 
-  @Patch('remove/:id')
+  @Patch('delete/:id')
   @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.breedService.remove(id);
