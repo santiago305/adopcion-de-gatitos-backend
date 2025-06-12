@@ -1,5 +1,5 @@
 import { Personality } from 'src/personality/entities/personality.entity';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, JoinColumn, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity('characteristics')
 export class Characteristics {
@@ -36,4 +36,10 @@ export class Characteristics {
 
   @Column({ default: false })
   deleted: boolean;
+
+  @CreateDateColumn()
+  createdAt: Date;
+
+  @UpdateDateColumn()
+  updatedAt: Date;
 }
