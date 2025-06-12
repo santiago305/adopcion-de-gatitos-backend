@@ -168,4 +168,17 @@ export class BreedService {
   async restore(id: string) {
     return this.toggleDelete(id, false, 'Raza restaurada', 'No se pudo restaurar la raza');
   }
+
+  async findBySpecies(speciesId: string) {
+    const result = await this.breedRepo
+      .createQueryBuilder('breed')
+      .select(['breed.id AS id', 'breed.name AS name'])
+      .where('breed.speciesId = :speciesId', { speciesId })
+      .andWhere('breed.deleted = false')
+      .orderBy('breed.name', 'ASC')
+      .getRawMany();
+
+    return successResponse('Razas por especie encontradas', result);
+  }
+
 }

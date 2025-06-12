@@ -62,4 +62,11 @@ export class BreedController {
   restore(@Param('id') id: string) {
     return this.breedService.restore(id);
   }
+
+  @Get('searchBySpecies')
+  @UseGuards(JwtAuthGuard)
+  findBySpecies(@Query('speciesId') speciesId: string) {
+    return this.breedService.findBySpecies(speciesId);
+  }
+
 }
