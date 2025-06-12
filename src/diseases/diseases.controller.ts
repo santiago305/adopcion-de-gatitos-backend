@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { DiseasesService } from './diseases.service';
 import { JwtAuthGuard } from 'src/auth/guard/jwt-auth.guard';
@@ -26,10 +27,19 @@ export class DiseasesController {
     return this.diseasesService.create(dto);
   }
 
-  @Get('findAll')
+   @Get('findAll')
   @UseGuards(JwtAuthGuard)
-  findAll() {
-    return this.diseasesService.findAll();
+  findAll(
+    @Query('page') page: number = 1,  // Parámetro de página (por defecto 1)
+    @Query('limit') limit: number = 15 // Parámetro de límite (por defecto 15)
+  ) {
+    return this.diseasesService.findAll(page, limit);
+  }
+
+  @Get('searchByName')
+  @UseGuards(JwtAuthGuard)
+  findByName(@Query('name') name: string) {
+    return this.diseasesService.findByName(name);
   }
 
   @Get('search/:id')

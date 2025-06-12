@@ -36,22 +36,43 @@ export class DiseasesService {
   }
 
 
-  async findAll() {
-    const result = await this.diseasesRepo
-      .createQueryBuilder('disease')
-      .select([
-        'disease.id AS id',
-        'disease.name As name',
-        'disease.severity AS severity',
-        'disease.createdAt AS "createdAt"',
-        'disease.updatedAt AS "updatedAt"'
-      ])
-      .where('disease.deleted = false')
-      .orderBy('disease.createdAt', 'DESC')
-      .getRawMany();
+  async findAll(page: number = 1, limit: number = 15) {
+  const skip = (page - 1) * limit; // Calculamos el desplazamiento (OFFSET)
 
-    return successResponse('Enfermedades activas encontradas', result);
+  const result = await this.diseasesRepo
+    .createQueryBuilder('disease')
+    .select([
+      'disease.id AS id',
+      'disease.name AS name',
+      'disease.severity AS severity',
+      'disease.createdAt AS createdAt',
+      'disease.updatedAt AS updatedAt'
+    ])
+    .where('disease.deleted = false')
+    .orderBy('disease.createdAt', 'ASC') // Ordenar por fecha de creación
+    .skip(skip) // Desplazamiento para la paginación
+    .take(limit) // Limitar el número de resultados
+    .getRawMany();
+
+    // Contamos el total de enfermedades activas
+    const totalCount = await this.diseasesRepo
+      .createQueryBuilder('disease')
+      .where('disease.deleted = false')
+      .getCount();
+
+    // Calculamos el número total de páginas
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return successResponse('Enfermedades activas encontradas', {
+      data: result,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount
+      }
+    });
   }
+
 
   async findOne(id: string) {
     const result = await this.diseasesRepo
@@ -140,4 +161,24 @@ export class DiseasesService {
 
     return result;
   }
+
+  async findByName(name: string) {
+    const result = await this.diseasesRepo
+      .createQueryBuilder('disease')
+      .select([
+        'disease.id AS id',
+        'disease.name AS name',
+        'disease.severity AS severity',
+        'disease.createdAt AS createdAt',
+        'disease.updatedAt AS updatedAt'
+      ])
+      .where('LOWER(disease.name) LIKE LOWER(:name)', { name: `%${name}%` }) // Búsqueda parcial
+      .andWhere('disease.deleted = false') // Asegurarse de que no esté eliminada
+      .getRawMany(); // Usamos getRawMany() porque esperamos múltiples resultados
+
+    if (result.length === 0) return errorResponse('No se encontraron enfermedades con ese nombre');
+
+    return successResponse('Enfermedades encontradas', result);
+  }
+
 }
