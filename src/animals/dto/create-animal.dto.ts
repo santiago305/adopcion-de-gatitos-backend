@@ -19,15 +19,15 @@ export class CreateAnimalsDto {
   @IsNotEmpty({ message: 'El estado de adopción es obligatorio.' })
   adopted: boolean;
 
-  @IsNotEmpty({ message: 'Las fotos son obligatorias.' })
-  @IsString({ each: true, message: 'Cada foto debe ser una cadena de texto.' })
-  photos: string[];
+  @IsString({ message: 'La foto debe ser una cadena de texto.' })
+  @IsOptional()  // No es obligatorio, puede no enviarse si no se va a cargar una foto
+  photos: string;  // Solo una foto ahora, no un array
 
-  @IsNotEmpty( { message: 'El ID de las características es obligatorio.' })
+  @IsNotEmpty({ message: 'El ID de las características es obligatorio.' })
   @IsString({ message: 'El ID de las características debe ser un texto.' })
   characteristicsId: string;
 
-  @IsNotEmpty(  { message: 'La información del animal es obligatoria.' })
+  @IsNotEmpty({ message: 'La información del animal es obligatoria.' })
   @IsString({ message: 'La información del animal debe ser un texto.' })
   information: string;
 

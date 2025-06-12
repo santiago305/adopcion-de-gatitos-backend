@@ -7,7 +7,8 @@ import { enableCookieParser } from './common/middleware/enable-cookie-parser';
 import { ValidationPipe } from '@nestjs/common';
 import helmet from 'helmet';
 import compression from 'compression';
-
+import { join } from 'path';
+import * as express from 'express';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
@@ -20,7 +21,7 @@ async function bootstrap() {
       transform: true,
     })
   )
-
+  app.use('/uploads', express.static(join(__dirname, '..', 'uploads')));
   // usamos el filtro de manera globasl
   app.useGlobalFilters(new HttpErrorFilter());
   enableCookieParser(app);

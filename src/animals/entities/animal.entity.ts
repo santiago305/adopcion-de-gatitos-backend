@@ -3,7 +3,6 @@ import { Characteristics } from 'src/characteristics/entities/characteristic.ent
 import { Diseases } from 'src/diseases/entities/disease.entity';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn, UpdateDateColumn } from 'typeorm';
 
-
 @Entity('animals')
 export class Animals {
   @PrimaryGeneratedColumn('uuid')
@@ -24,8 +23,8 @@ export class Animals {
   @Column({ default: false })
   adopted: boolean;
 
-  @Column('text', { array: true, nullable: true })
-  photos: string[];
+  @Column({ type: 'text', nullable: true })
+  photos: string; // Cambiado a un solo string (URL o nombre de la foto)
 
   @ManyToOne(() => Characteristics)
   characteristics: Characteristics;
@@ -39,7 +38,6 @@ export class Animals {
   @Column({ default: false })
   deleted: boolean;
 
-  
   @CreateDateColumn({ name: 'created_at', type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })
   createdAt: Date;
 

@@ -22,8 +22,8 @@ export class UpdateAnimalsDto {
   adopted?: boolean;
 
   @IsOptional()
-  @IsString({ each: true, message: 'Cada foto debe ser una cadena de texto.' })
-  photos?: string[];
+  @IsString({ message: 'La foto debe ser una cadena de texto.' })
+  photos?: string;  // Solo una foto
 
   @IsOptional()
   @IsString({ message: 'El ID de las características debe ser un texto.' })
