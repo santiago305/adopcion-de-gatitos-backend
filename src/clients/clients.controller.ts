@@ -66,6 +66,16 @@ export class ClientsController {
     return this.clientsService.create(dto, user);
   }
 
+  @Get('check-existing-clients/me')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles(RoleType.USER)
+  isClientExist(@CurrentUser() user: { userId: string }){
+    return this.clientsService.isClientExist({
+      type: 'userId',
+      value: user.userId,
+    });
+  }
+  
   @Get('client-me')
   @UseGuards(JwtAuthGuard, RolesGuard)
   @Roles(RoleType.USER)

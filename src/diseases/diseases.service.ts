@@ -41,10 +41,13 @@ export class DiseasesService {
       .createQueryBuilder('disease')
       .select([
         'disease.id AS id',
-        'disease.name As diseases',
-        'disease.severity AS severity'
+        'disease.name As name',
+        'disease.severity AS severity',
+        'disease.createdAt AS "createdAt"',
+        'disease.updatedAt AS "updatedAt"'
       ])
       .where('disease.deleted = false')
+      .orderBy('disease.createdAt', 'DESC')
       .getRawMany();
 
     return successResponse('Enfermedades activas encontradas', result);
@@ -55,8 +58,10 @@ export class DiseasesService {
       .createQueryBuilder('disease')
       .select([
         'disease.id AS id',
-        'disease.name As diseases',
-        'disease.severity AS severity'
+        'disease.name As name',
+        'disease.severity AS severity',
+        'disease.createdAt AS createdAt', // Incluir createdAt
+        'disease.updatedAt AS updatedAt'
       ])
       .where('disease.id = :id', { id })
       .andWhere('disease.deleted = false')
