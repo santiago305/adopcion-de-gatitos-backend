@@ -59,7 +59,7 @@ export class AnimalsController {
   }
 
   // Obtener todos los animales con paginación
-  @Get('findAll')
+  @Get('')
   @UseGuards(JwtAuthGuard)
   findAll(
     @Query('page') page: number = 1,  // Parámetro de página (por defecto 1)
