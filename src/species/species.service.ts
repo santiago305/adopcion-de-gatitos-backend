@@ -14,12 +14,15 @@ export class SpeciesService {
   ) {}
 
   async create(dto: CreateSpeciesDto) {
+    const exists = await this.isSpeciesExisting(dto.name ?? 'ninguno');
+    if (exists) return errorResponse('La especie ya existe');
+
     try {
       await this.speciesRepo
         .createQueryBuilder()
         .insert()
         .into(Species)
-        .values({ name: dto.name })
+        .values({ name: dto.name ?? 'ninguno' })
         .execute();
 
       return successResponse('Especie creada exitosamente');
@@ -29,22 +32,52 @@ export class SpeciesService {
     }
   }
 
-  async findAll() {
+  async findAll(page: number = 1, limit: number = 15) {
+    const skip = (page - 1) * limit;
+
     const result = await this.speciesRepo
       .createQueryBuilder('species')
-      
+      .select([
+        'species.id AS id',
+        'species.name AS name',
+        'species.createdAt AS createdAt',
+        'species.updatedAt AS updatedAt'
+      ])
       .where('species.deleted = false')
-      .getMany();
+      .orderBy('species.createdAt', 'ASC')
+      .skip(skip)
+      .take(limit)
+      .getRawMany();
 
-    return successResponse('Especies activas encontradas', result);
+    const totalCount = await this.speciesRepo
+      .createQueryBuilder('species')
+      .where('species.deleted = false')
+      .getCount();
+
+    const totalPages = Math.ceil(totalCount / limit);
+
+    return successResponse('Especies activas encontradas', {
+      data: result,
+      pagination: {
+        currentPage: page,
+        totalPages,
+        totalCount,
+      },
+    });
   }
 
   async findOne(id: string) {
     const result = await this.speciesRepo
       .createQueryBuilder('species')
+      .select([
+        'species.id AS id',
+        'species.name AS name',
+        'species.createdAt AS createdAt',
+        'species.updatedAt AS updatedAt'
+      ])
       .where('species.id = :id', { id })
       .andWhere('species.deleted = false')
-      .getOne();
+      .getRawOne();
 
     if (!result) return errorResponse('No se encontró la especie');
 
@@ -53,11 +86,15 @@ export class SpeciesService {
 
   async update(id: string, dto: UpdateSpeciesDto) {
     await this.findOne(id);
+
     try {
+      const updateData: Partial<Species> = {};
+      if (dto.name !== undefined) updateData.name = dto.name;
+
       await this.speciesRepo
         .createQueryBuilder()
         .update(Species)
-        .set({ name: dto.name })
+        .set(updateData)
         .where('id = :id', { id })
         .execute();
 
@@ -93,8 +130,8 @@ export class SpeciesService {
     return this.toggleDelete(
       id,
       true,
-      'Especie eliminada',
-      'No se pudo eliminar la especie',
+      'Especie desactivada',
+      'No se pudo desactivar la especie',
     );
   }
 
@@ -102,8 +139,33 @@ export class SpeciesService {
     return this.toggleDelete(
       id,
       false,
-      'Especie restaurada',
-      'No se pudo restaurar la especie',
+      'Especie reactivada',
+      'No se pudo reactivar la especie',
     );
+  }
+
+  async isSpeciesExisting(name: string): Promise<boolean> {
+    return this.speciesRepo
+      .createQueryBuilder('species')
+      .where('LOWER(species.name) = LOWER(:name)', { name })
+      .getExists();
+  }
+
+  async findByName(name: string) {
+    const result = await this.speciesRepo
+      .createQueryBuilder('species')
+      .select([
+        'species.id AS id',
+        'species.name AS name',
+        'species.createdAt AS createdAt',
+        'species.updatedAt AS updatedAt'
+      ])
+      .where('LOWER(species.name) LIKE LOWER(:name)', { name: `%${name}%` })
+      .andWhere('species.deleted = false')
+      .getRawMany();
+
+    if (result.length === 0) return errorResponse('No se encontraron especies con ese nombre');
+
+    return successResponse('Especies encontradas', result);
   }
 }

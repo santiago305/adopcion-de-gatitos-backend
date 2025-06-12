@@ -6,6 +6,7 @@ import {
   Param,
   Body,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { SpeciesService } from './species.service';
 import { CreateSpeciesDto } from './dto/create-species.dto';
@@ -27,32 +28,40 @@ export class SpeciesController {
   }
 
   @Get('findAll')
-  findAll() {
-    return this.speciesService.findAll();
+  @UseGuards(JwtAuthGuard)
+  findAll(
+    @Query('page') page: number = 1,
+    @Query('limit') limit: number = 15,
+  ) {
+    return this.speciesService.findAll(page, limit);
+  }
+
+  @Get('searchByName')
+  @UseGuards(JwtAuthGuard)
+  findByName(@Query('name') name: string) {
+    return this.speciesService.findByName(name);
   }
 
   @Get('search/:id')
+  @UseGuards(JwtAuthGuard)
   findOne(@Param('id') id: string) {
     return this.speciesService.findOne(id);
   }
 
   @Patch('update/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
+  @UseGuards(JwtAuthGuard)
   update(@Param('id') id: string, @Body() dto: UpdateSpeciesDto) {
     return this.speciesService.update(id, dto);
   }
 
-  @Patch('remove/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
+  @Patch('delete/:id')
+  @UseGuards(JwtAuthGuard)
   remove(@Param('id') id: string) {
     return this.speciesService.remove(id);
   }
 
   @Patch('restore/:id')
-  @UseGuards(JwtAuthGuard, RolesGuard)
-  @Roles(RoleType.ADMIN)
+  @UseGuards(JwtAuthGuard)
   restore(@Param('id') id: string) {
     return this.speciesService.restore(id);
   }
